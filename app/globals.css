@@ -1,26 +1,233 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f8f3;
+  --foreground: #1b2523;
+  --paper: #eff5f1;
+  --paper-strong: #ffffff;
+  --line: #d7dfeb;
+  --line-strong: #bcc8d8;
+  --primary: #1f6355;
+  --primary-strong: #134338;
+  --accent: #2f8a77;
+  --danger: #d92d20;
+  --success: #0f9d72;
+  --ink-soft: #5a665f;
+  --shadow-soft: 0 20px 42px -32px rgba(15, 23, 42, 0.35);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-brand-sans);
+  --font-mono: var(--font-brand-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-brand-sans), "Segoe UI", sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at 8% 2%, rgba(47, 138, 119, 0.12), transparent 36%),
+    radial-gradient(circle at 92% 8%, rgba(31, 99, 85, 0.1), transparent 34%),
+    linear-gradient(150deg, #f6f9f4 0%, #eef4ef 55%, #e6ede4 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(15, 23, 42, 0.02) 0,
+      rgba(15, 23, 42, 0.02) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(15, 23, 42, 0.017) 0,
+      rgba(15, 23, 42, 0.017) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  opacity: 0.24;
+  z-index: 0;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-brand-sans), "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+.panel {
+  border: 1px solid color-mix(in oklab, var(--line) 88%, white 12%);
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 255, 0.94));
+  box-shadow: var(--shadow-soft);
+  border-radius: 1rem;
+}
+
+.panel-soft {
+  border: 1px solid color-mix(in oklab, var(--line) 82%, white 18%);
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 0.8rem;
+}
+
+.pill-label {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 99, 85, 0.22);
+  background: rgba(31, 99, 85, 0.09);
+  color: var(--primary-strong);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.62rem;
+}
+
+.form-input {
+  width: 100%;
+  border-radius: 0.72rem;
+  border: 1px solid color-mix(in oklab, var(--line) 88%, #ffffff 12%);
+  background: var(--paper-strong);
+  padding: 0.58rem 0.78rem;
+  font-size: 0.9rem;
+  color: var(--foreground);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+}
+
+.form-input:focus {
+  border-color: color-mix(in oklab, var(--primary) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(31, 99, 85, 0.14);
+  outline: none;
+}
+
+.action-btn {
+  border-radius: 0.72rem;
+  border: 1px solid transparent;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.action-btn-primary {
+  background: linear-gradient(145deg, #1f6355, #184d42);
+  color: #f8fcff;
+  box-shadow: 0 10px 22px -16px rgba(24, 77, 66, 0.72);
+}
+
+.action-btn-primary:hover {
+  background: linear-gradient(145deg, #245f54, #1a4a40);
+}
+
+.action-btn-soft {
+  border-color: rgba(148, 163, 184, 0.34);
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
+}
+
+.action-btn-danger {
+  border-color: rgba(185, 28, 28, 0.28);
+  background: rgba(185, 28, 28, 0.08);
+  color: #991b1b;
+}
+
+.app-enter {
+  opacity: 0;
+  animation: app-rise 0.45s ease forwards;
+}
+
+.app-enter-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.app-enter-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.app-enter-delay-3 {
+  animation-delay: 0.24s;
+}
+
+@keyframes app-rise {
+  to {
+    opacity: 1;
+  }
+}
+
+.wizard-overlay {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(31, 99, 85, 0.2), transparent 34%),
+    radial-gradient(circle at 82% 14%, rgba(47, 138, 119, 0.17), transparent 34%),
+    rgba(2, 6, 23, 0.74);
+  backdrop-filter: blur(6px);
+  animation: wizard-fade 0.22s ease;
+}
+
+.wizard-panel {
+  animation: wizard-pop 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.wizard-step {
+  position: relative;
+  isolation: isolate;
+}
+
+.wizard-step::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0.48), transparent);
+  z-index: -1;
+}
+
+@keyframes wizard-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wizard-pop {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-enter,
+  .wizard-overlay,
+  .wizard-panel {
+    animation: none;
+  }
 }
