@@ -453,12 +453,12 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
               />
 
               <div
-                className="wizard-panel relative z-10 flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.35rem] border border-[color:rgba(148,163,184,0.35)] bg-[color:rgba(255,255,255,0.98)] shadow-[0_40px_60px_-36px_rgba(15,23,42,0.78)] sm:max-h-[90dvh] sm:rounded-[1.5rem]"
+                className="wizard-panel relative z-10 flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.35rem] border border-[color:rgba(148,163,184,0.35)] bg-[var(--surface)] shadow-[0_40px_60px_-36px_rgba(15,23,42,0.78)] sm:max-h-[90dvh] sm:rounded-[1.5rem]"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Crear producto"
               >
-                <div className="shrink-0 border-b border-[color:rgba(148,163,184,0.3)] px-5 py-4 sm:px-6">
+                <div className="shrink-0 border-b border-[var(--border)] px-5 py-4 sm:px-6">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="pill-label">Asistente</p>
@@ -486,7 +486,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                               ? "border-[color:rgba(31,99,85,0.35)] bg-[color:rgba(31,99,85,0.12)]"
                               : isDone
                                 ? "border-[color:rgba(15,157,114,0.3)] bg-[color:rgba(15,157,114,0.1)]"
-                                : "border-[color:rgba(148,163,184,0.28)] bg-[color:rgba(255,255,255,0.78)]"
+                                : "border-[var(--border-light)] bg-[var(--surface)]"
                           }`}
                         >
                           <span className="block font-mono text-[0.66rem] uppercase tracking-[0.14em] text-[var(--ink-soft)]">
@@ -681,7 +681,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                     <input type="hidden" name="initialWarehouseId" value={form.initialWarehouseId} />
                   </div>
 
-                  <div className="shrink-0 border-t border-[color:rgba(148,163,184,0.24)] px-5 py-4 sm:px-6">
+                  <div className="shrink-0 border-t border-[var(--border-light)] px-5 py-4 sm:px-6">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-xs text-[var(--ink-soft)]">
                         Paso {step} de 3 - alta de producto asistida.
@@ -719,7 +719,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
 
               {isScannerOpen ? (
                 <div className="absolute inset-0 z-20 flex items-end justify-center bg-[color:rgba(2,6,23,0.76)] p-3 sm:hidden">
-                  <div className="w-full max-w-md rounded-2xl border border-[color:rgba(148,163,184,0.32)] bg-[color:rgba(255,255,255,0.97)] p-3 shadow-[0_30px_60px_-30px_rgba(2,6,23,0.8)]">
+                  <div className="w-full max-w-md rounded-2xl border border-[color:rgba(148,163,184,0.32)] bg-[var(--surface)] p-3 shadow-[0_30px_60px_-30px_rgba(2,6,23,0.8)]">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-[var(--foreground)]">Escanear codigo de barras</p>
                       <div className="flex items-center gap-2">

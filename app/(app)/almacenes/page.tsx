@@ -73,20 +73,20 @@ export default async function WarehousesPage({ searchParams }: WarehousesPagePro
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.82)] px-3 py-2">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
                     <p className="text-xs text-[var(--ink-soft)]">Stock total</p>
                     <p className="text-sm font-semibold text-[var(--foreground)]">{warehouse.totalQty}</p>
                   </div>
-                  <div className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.82)] px-3 py-2">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
                     <p className="text-xs text-[var(--ink-soft)]">Productos</p>
                     <p className="text-sm font-semibold text-[var(--foreground)]">{warehouse.totalProducts}</p>
                   </div>
                 </div>
 
                 {isAdmin ? (
-                  <div className="mt-4 border-t border-[color:rgba(148,163,184,0.28)] pt-3">
+                  <div className="mt-4 border-t border-[var(--border)] pt-3">
                     <details className="group">
-                      <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.85)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:border-[color:rgba(31,99,85,0.45)] [&::-webkit-details-marker]:hidden">
+                      <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:border-[color:rgba(31,99,85,0.45)] [&::-webkit-details-marker]:hidden">
                         Editar
                         <svg
                           viewBox="0 0 20 20"

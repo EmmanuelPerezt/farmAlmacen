@@ -51,7 +51,7 @@ export default async function MovementsPage({ searchParams }: MovementsPageProps
               {movements.map((movement) => (
                 <article
                   key={movement.id}
-                  className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.85)] px-3 py-3"
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="rounded-full border border-[color:rgba(31,99,85,0.24)] bg-[color:rgba(31,99,85,0.1)] px-2 py-1 text-[0.68rem] font-semibold text-[var(--primary-strong)]">
@@ -69,13 +69,13 @@ export default async function MovementsPage({ searchParams }: MovementsPageProps
                   </div>
 
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg border border-[color:rgba(148,163,184,0.28)] bg-[color:rgba(248,251,255,0.8)] px-2 py-1.5">
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-glass)] px-2 py-1.5">
                       <p className="text-[var(--ink-soft)]">Origen</p>
                       <p className="min-w-0 break-words text-[var(--foreground)]">
                         {movement.sourceWarehouseName ?? "-"}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-[color:rgba(148,163,184,0.28)] bg-[color:rgba(248,251,255,0.8)] px-2 py-1.5">
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-glass)] px-2 py-1.5">
                       <p className="text-[var(--ink-soft)]">Destino</p>
                       <p className="min-w-0 break-words text-[var(--foreground)]">
                         {movement.targetWarehouseName ?? "-"}
@@ -91,7 +91,7 @@ export default async function MovementsPage({ searchParams }: MovementsPageProps
             <div className="hidden overflow-x-auto md:block">
               <table className="min-w-[760px] text-sm">
                 <thead>
-                  <tr className="border-b border-[color:rgba(148,163,184,0.34)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
+                  <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
                     <th className="pb-2 pr-3">ID</th>
                     <th className="pb-2 pr-3">Tipo</th>
                     <th className="pb-2 pr-3">Producto</th>
@@ -106,7 +106,7 @@ export default async function MovementsPage({ searchParams }: MovementsPageProps
                   {movements.map((movement) => (
                     <tr
                       key={movement.id}
-                      className="border-b border-[color:rgba(148,163,184,0.28)] align-top transition hover:bg-[color:rgba(31,99,85,0.05)]"
+                      className="border-b border-[var(--border)] align-top transition hover:bg-[color:rgba(31,99,85,0.05)]"
                     >
                       <td className="py-2 pr-3 text-xs font-semibold text-[var(--foreground)]">{movement.id}</td>
                       <td className="py-2 pr-3 text-[var(--foreground)]">{movementLabels[movement.type]}</td>

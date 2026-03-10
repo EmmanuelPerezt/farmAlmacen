@@ -70,6 +70,23 @@ function SettingsIcon({ className }: IconProps) {
   );
 }
 
+function MoonIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SunIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 type NavItem = {
   href: string;
   label: string;
@@ -98,6 +115,18 @@ export function AppShell({ user, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    localStorage.setItem("farmalmacen-theme", next);
+  };
+
   const pageTitle = useMemo(() => getPageTitle(pathname), [pathname]);
 
   return (
@@ -110,7 +139,7 @@ export function AppShell({ user, children }: AppShellProps) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 hidden w-72 flex-col border-r border-[color:rgba(148,163,184,0.34)] bg-[color:rgba(248,252,255,0.95)] px-4 py-4 backdrop-blur transition-transform duration-300 md:flex lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 hidden w-72 flex-col border-r border-[var(--border)] bg-[var(--surface-glass)] px-4 py-4 backdrop-blur transition-transform duration-300 md:flex lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -139,10 +168,10 @@ export function AppShell({ user, children }: AppShellProps) {
                 className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
                   active
                     ? "border-[color:rgba(31,99,85,0.3)] bg-[color:rgba(31,99,85,0.11)] text-[var(--primary-strong)]"
-                    : "border-transparent text-slate-600 hover:border-[color:rgba(148,163,184,0.3)] hover:bg-white"
+                    : "border-transparent text-[var(--ink-soft)] hover:border-[var(--border)] hover:bg-[var(--surface)]"
                 }`}
               >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[color:rgba(148,163,184,0.24)] bg-white">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-light)] bg-[var(--surface)]">
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="font-medium">{item.label}</span>
@@ -151,13 +180,13 @@ export function AppShell({ user, children }: AppShellProps) {
           })}
         </nav>
 
-        <div className="mt-5 rounded-lg border border-[color:rgba(148,163,184,0.3)] bg-white px-3 py-2 text-xs text-[var(--ink-soft)]">
+        <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--ink-soft)]">
           Datos en memoria para este MVP.
         </div>
       </aside>
 
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-[color:rgba(148,163,184,0.28)] bg-[color:rgba(248,252,255,0.82)] px-4 py-3 backdrop-blur lg:px-6">
+        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-glass)] px-4 py-3 backdrop-blur lg:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
@@ -173,10 +202,19 @@ export function AppShell({ user, children }: AppShellProps) {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="flex min-w-44 items-center justify-between gap-3 rounded-lg border border-[color:rgba(148,163,184,0.34)] bg-white px-3 py-2 text-left text-sm transition hover:border-[color:rgba(31,99,85,0.34)]"
+                onClick={toggleTheme}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:border-[color:rgba(31,99,85,0.34)]"
+                aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              >
+                {theme === "dark" ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+              </button>
+              <div className="relative">
+              <button
+                type="button"
+                className="flex min-w-44 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-left text-sm transition hover:border-[color:rgba(31,99,85,0.34)]"
                 onClick={() => setMenuOpen((value) => !value)}
               >
                 <span>
@@ -191,7 +229,7 @@ export function AppShell({ user, children }: AppShellProps) {
               </button>
 
               <div
-                className={`absolute right-0 mt-2 w-64 rounded-lg border border-[color:rgba(148,163,184,0.34)] bg-white p-3 shadow-[0_18px_30px_-22px_rgba(15,23,42,0.65)] transition ${
+                className={`absolute right-0 mt-2 w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_30px_-22px_rgba(15,23,42,0.65)] transition ${
                   menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}
               >
@@ -204,13 +242,14 @@ export function AppShell({ user, children }: AppShellProps) {
                 </form>
               </div>
             </div>
+            </div>
           </div>
         </header>
 
         <main className="px-4 py-5 pb-24 md:pb-5 lg:px-6 lg:py-6 lg:pb-6">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:rgba(148,163,184,0.34)] bg-[color:rgba(255,255,255,0.92)] px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--surface-glass)] px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden">
         <div className="grid grid-cols-5 gap-1">
           {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -223,7 +262,7 @@ export function AppShell({ user, children }: AppShellProps) {
                 className={`flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[0.67rem] font-medium transition ${
                   active
                     ? "bg-[color:rgba(31,99,85,0.11)] text-[var(--primary-strong)]"
-                    : "text-[var(--ink-soft)] hover:bg-[color:rgba(148,163,184,0.14)]"
+                    : "text-[var(--ink-soft)] hover:bg-[var(--hover-tint)]"
                 }`}
               >
                 <Icon className="h-4 w-4" />

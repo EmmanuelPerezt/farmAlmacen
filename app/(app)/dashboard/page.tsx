@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="app-enter rounded-xl border border-[color:rgba(148,163,184,0.34)] bg-white p-5 shadow-[0_20px_40px_-34px_rgba(15,23,42,0.5)]">
+      <section className="app-enter rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_20px_40px_-34px_rgba(15,23,42,0.5)]">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="pill-label">Resumen operativo</p>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
                 {metrics.latestMovements.map((movement) => (
                   <article
                     key={movement.id}
-                    className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.85)] px-3 py-3"
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="rounded-full border border-[color:rgba(31,99,85,0.24)] bg-[color:rgba(31,99,85,0.1)] px-2 py-1 text-[0.68rem] font-semibold text-[var(--primary-strong)]">
@@ -103,7 +103,7 @@ export default function DashboardPage() {
               <div className="hidden overflow-x-auto md:block">
                 <table className="min-w-[640px] text-sm">
                   <thead>
-                    <tr className="border-b border-[color:rgba(148,163,184,0.34)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
+                    <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
                       <th className="pb-2 pr-3">Tipo</th>
                       <th className="pb-2 pr-3">Producto</th>
                       <th className="pb-2 pr-3">Cantidad</th>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                     {metrics.latestMovements.map((movement) => (
                       <tr
                         key={movement.id}
-                        className="border-b border-[color:rgba(148,163,184,0.28)] transition hover:bg-[color:rgba(31,99,85,0.05)]"
+                        className="border-b border-[var(--border)] transition hover:bg-[color:rgba(31,99,85,0.05)]"
                       >
                         <td className="py-2 pr-3 text-[var(--foreground)]">
                           <span className="rounded-full border border-[color:rgba(31,99,85,0.24)] bg-[color:rgba(31,99,85,0.1)] px-2 py-1 text-xs font-semibold text-[var(--primary-strong)]">
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                     <p className="min-w-0 break-words text-sm font-semibold leading-snug text-[var(--danger)]">
                       {product.name}
                     </p>
-                    <span className="shrink-0 rounded-full border border-[color:rgba(217,45,32,0.3)] bg-[color:rgba(255,255,255,0.8)] px-2 py-0.5 text-[0.68rem] font-semibold text-[color:#9b2c2c]">
+                    <span className="shrink-0 rounded-full border border-[color:rgba(217,45,32,0.3)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[color:#9b2c2c]">
                       {product.totalQty}
                     </span>
                   </div>

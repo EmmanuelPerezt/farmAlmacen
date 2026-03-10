@@ -128,7 +128,7 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
             return (
               <article
                 key={product.sku}
-                className={`group relative overflow-hidden rounded-2xl border bg-white p-4 shadow-[0_18px_35px_-30px_rgba(15,23,42,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_38px_-28px_rgba(31,99,85,0.35)] ${stockMeta.ringClassName}`}
+                className={`group relative overflow-hidden rounded-2xl border bg-[var(--surface)] p-4 shadow-[0_18px_35px_-30px_rgba(15,23,42,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_38px_-28px_rgba(31,99,85,0.35)] ${stockMeta.ringClassName}`}
               >
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(31,99,85,0.08),transparent)]" />
 
@@ -137,7 +137,7 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                     <div>
                       <p className="line-clamp-2 text-base font-semibold text-[var(--foreground)]">{product.name}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-full border border-[color:rgba(148,163,184,0.36)] bg-white px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--ink-soft)]">
+                        <span className="rounded-full border border-[color:rgba(148,163,184,0.36)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--ink-soft)]">
                           SKU {product.sku}
                         </span>
                         <span
@@ -155,11 +155,11 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                    <div className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(248,251,255,0.8)] px-3 py-2">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-glass)] px-3 py-2">
                       <p className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Stock total</p>
                       <p className="mt-1 text-lg font-semibold text-[var(--foreground)]">{product.totalQty}</p>
                     </div>
-                    <div className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(248,251,255,0.8)] px-3 py-2">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-glass)] px-3 py-2">
                       <p className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Almacenes</p>
                       <p className="mt-1 text-lg font-semibold text-[var(--foreground)]">
                         {product.stockByWarehouse.filter((stock) => stock.qty > 0).length}
@@ -167,7 +167,7 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                     </div>
                   </div>
 
-                  <div className="mt-3 rounded-xl border border-[color:rgba(148,163,184,0.28)] bg-[color:rgba(255,255,255,0.82)] p-3">
+                  <div className="mt-3 rounded-xl border border-[var(--border-light)] bg-[var(--surface)] p-3">
                     <p className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--ink-soft)]">
                       Distribucion por almacen
                     </p>
@@ -190,7 +190,7 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                   </div>
 
                   {isAdmin ? (
-                    <div className="mt-4 border-t border-[color:rgba(148,163,184,0.28)] pt-3">
+                    <div className="mt-4 border-t border-[var(--border-light)] pt-3">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--ink-soft)]">
                           Gestion rapida

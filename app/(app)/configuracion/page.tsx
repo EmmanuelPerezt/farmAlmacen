@@ -47,7 +47,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-[color:rgba(148,163,184,0.34)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
+              <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
                 <th className="pb-2 pr-3">Usuario</th>
                 <th className="pb-2 pr-3">Nombre</th>
                 <th className="pb-2 pr-3">Rol</th>
@@ -58,7 +58,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               {users.map((user) => (
                 <tr
                   key={user.id}
-                  className="border-b border-[color:rgba(148,163,184,0.28)] transition hover:bg-[color:rgba(31,99,85,0.05)]"
+                  className="border-b border-[var(--border)] transition hover:bg-[color:rgba(31,99,85,0.05)]"
                 >
                   <td className="py-2 pr-3 text-[var(--foreground)]">@{user.username}</td>
                   <td className="py-2 pr-3 font-semibold text-[var(--foreground)]">{user.displayName}</td>
