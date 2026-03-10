@@ -57,6 +57,28 @@ function WarehouseIcon({ className }: IconProps) {
   );
 }
 
+function PosIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 9h16" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 9v11" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="6.5" cy="6.5" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SalesIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 12h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SettingsIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
@@ -78,8 +100,10 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
-  { href: "/movimientos", label: "Movimientos", icon: MovementIcon },
   { href: "/productos", label: "Productos", icon: ProductIcon },
+  { href: "/pos", label: "POS", icon: PosIcon },
+  { href: "/ventas", label: "Ventas", icon: SalesIcon },
+  { href: "/movimientos", label: "Movimientos", icon: MovementIcon },
   { href: "/almacenes", label: "Almacenes", icon: WarehouseIcon },
   { href: "/configuracion", label: "Config", icon: SettingsIcon },
 ];
@@ -90,6 +114,8 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/productos")) return "Productos";
   if (pathname.startsWith("/almacenes")) return "Almacenes";
   if (pathname.startsWith("/configuracion")) return "Configuracion";
+  if (pathname.startsWith("/pos")) return "Punto de Venta";
+  if (pathname.startsWith("/ventas")) return "Ventas";
   return "FarmAlmacen";
 }
 
@@ -212,7 +238,7 @@ export function AppShell({ user, children }: AppShellProps) {
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:rgba(148,163,184,0.34)] bg-[color:rgba(255,255,255,0.92)] px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden">
         <div className="grid grid-cols-5 gap-1">
-          {navItems.map((item) => {
+          {navItems.slice(0, 5).map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
 

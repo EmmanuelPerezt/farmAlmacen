@@ -231,3 +231,27 @@ h4 {
     animation: none;
   }
 }
+
+@media print {
+  body,
+  body::before {
+    background: none !important;
+    background-image: none !important;
+  }
+
+  body > *:not(.pos-receipt-print) {
+    display: none !important;
+  }
+
+  .pos-receipt-print {
+    display: block !important;
+    width: 80mm;
+    margin: 0 auto;
+    font-size: 12px;
+    font-family: var(--font-brand-mono), monospace;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
