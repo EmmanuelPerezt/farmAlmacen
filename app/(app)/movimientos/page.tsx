@@ -1,10 +1,8 @@
-import { NoticeBanner } from "@/components/notice-banner";
 import { MovementWizardModal } from "@/components/movement-wizard-modal";
 import { SectionCard } from "@/components/section-card";
 import { SectionCardTop } from "@/components/sectionCardTop";
 import { formatDateTime } from "@/lib/format";
-import { readSearchParam } from "@/lib/query";
-import { listMovements, listProductsWithStock, listWarehouses } from "@/lib/store";
+import { listMovements, listProductsWithStock, listWarehouses } from "@/lib/db";
 
 const movementLabels = {
   entrada: "Entrada",
@@ -12,30 +10,20 @@ const movementLabels = {
   traslado: "Traslado",
 };
 
-type MovementsPageProps = {
-  searchParams?: Promise<{
-    success?: string | string[];
-    error?: string | string[];
-  }>;
-};
-
-export default async function MovementsPage({ searchParams }: MovementsPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const success = readSearchParam(resolvedSearchParams?.success);
-  const error = readSearchParam(resolvedSearchParams?.error);
-
-  const products = listProductsWithStock();
-  const warehouses = listWarehouses();
-  const movements = listMovements();
+export default async function MovementsPage() {
+  const [products, warehouses, movements] = await Promise.all([
+    listProductsWithStock(),
+    listWarehouses(),
+    listMovements(),
+  ]);
 
   return (
     <div className="space-y-6" >
-      <NoticeBanner success={success} error={error} />
       <SectionCardTop
         title="Registrar movimiento"
         description="Asistente guiado por pasos para registrar entradas, salidas y traslados."
       >
-        <MovementWizardModal products={products} warehouses={warehouses} formError={error} />
+        <MovementWizardModal products={products} warehouses={warehouses} />
       </SectionCardTop>
       <SectionCard
         title="Historial de movimientos"

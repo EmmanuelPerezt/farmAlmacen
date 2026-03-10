@@ -1,44 +1,27 @@
-import { NoticeBanner } from "@/components/notice-banner";
 import { ProductCreateModal } from "@/components/product-create-modal";
 import { ProductsCatalog } from "@/components/products-catalog";
 import { SectionCard } from "@/components/section-card";
 import { SectionCardTop } from "@/components/sectionCardTop";
 import { requireSession } from "@/lib/auth";
-import { readSearchParam } from "@/lib/query";
-import { listProductsWithStock, listWarehouses } from "@/lib/store";
+import { listProductsWithStock, listWarehouses } from "@/lib/db";
 
-type ProductsPageProps = {
-  searchParams?: Promise<{
-    success?: string | string[];
-    error?: string | string[];
-    context?: string | string[];
-  }>;
-};
-
-export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+export default async function ProductsPage() {
   const session = await requireSession();
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const success = readSearchParam(resolvedSearchParams?.success);
-  const error = readSearchParam(resolvedSearchParams?.error);
-  const context = readSearchParam(resolvedSearchParams?.context);
-  const createError = context === "create" ? error : undefined;
-  const pageError = context === "create" ? undefined : error;
-
-  const products = listProductsWithStock();
-  const warehouses = listWarehouses();
+  const [products, warehouses] = await Promise.all([
+    listProductsWithStock(),
+    listWarehouses(),
+  ]);
   const isAdmin = session.role === "admin";
 
   return (
     <div className="space-y-6">
-      <NoticeBanner success={success} error={pageError} />
-
       {isAdmin ? (
         <SectionCardTop
           title="Crear producto"
           description="Asistente guiado para crear SKU, precio y stock inicial en pasos."
         >
-          <ProductCreateModal warehouses={warehouses} formError={createError} />
+          <ProductCreateModal warehouses={warehouses} />
         </SectionCardTop>
       ) : (
         <div className="rounded-2xl border border-[color:rgba(31,99,85,0.3)] bg-[color:rgba(31,99,85,0.09)] px-4 py-3 text-sm text-[var(--foreground)]">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { QrScanner } from "@/components/qr-scanner";
 import { formatMoney } from "@/lib/format";
@@ -21,14 +22,16 @@ type PosRegisterProps = {
   warehouses: Warehouse[];
   products: ProductWithQty[];
   activeWarehouseId?: string;
-  error?: string;
 };
 
-export function PosRegister({ warehouses, products, activeWarehouseId, error }: PosRegisterProps) {
+export function PosRegister({ warehouses, products, activeWarehouseId }: PosRegisterProps) {
+  const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cashReceived, setCashReceived] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [saleError, setSaleError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -110,6 +113,38 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
     [products, addToCart],
   );
 
+  const handleCheckout = async () => {
+    if (!canSubmit || !activeWarehouseId) return;
+
+    setIsSubmitting(true);
+    setSaleError(null);
+
+    try {
+      const res = await fetch("/api/sales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          warehouseId: activeWarehouseId,
+          cashReceived: cashValue,
+          items: cart.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+        }),
+      });
+
+      const data = await res.json() as { sale?: { id: string }; error?: string };
+
+      if (!res.ok) {
+        setSaleError(data.error ?? "No fue posible registrar la venta.");
+        return;
+      }
+
+      router.push(`/pos/recibo?saleId=${data.sale!.id}`);
+    } catch {
+      setSaleError("Error de conexion. Intenta nuevamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Warehouse selection phase
   if (!activeWarehouseId) {
     return (
@@ -145,9 +180,9 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
     <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-57px)]">
       {/* Left: Product search + grid */}
       <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6">
-        {error ? (
+        {saleError ? (
           <div className="mb-4 rounded-lg border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
-            {error}
+            {saleError}
           </div>
         ) : null}
 
@@ -305,22 +340,16 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
               </div>
             ) : null}
 
-            <form action="/api/sales" method="post" className="mt-3">
-              <input type="hidden" name="warehouseId" value={activeWarehouseId} />
-              <input type="hidden" name="cashReceived" value={cashValue} />
-              <input
-                type="hidden"
-                name="items"
-                value={JSON.stringify(cart.map((item) => ({ sku: item.sku, quantity: item.quantity })))}
-              />
+            <div className="mt-3">
               <button
-                type="submit"
-                disabled={!canSubmit}
+                type="button"
+                onClick={handleCheckout}
+                disabled={!canSubmit || isSubmitting}
                 className="action-btn action-btn-primary w-full disabled:opacity-50 disabled:hover:transform-none"
               >
-                Cobrar {canSubmit ? formatMoney(total) : ""}
+                {isSubmitting ? "Procesando..." : `Cobrar ${canSubmit ? formatMoney(total) : ""}`}
               </button>
-            </form>
+            </div>
           </div>
         </div>
       </div>

@@ -1,46 +1,27 @@
 import { redirect } from "next/navigation";
 
-import { NoticeBanner } from "@/components/notice-banner";
 import { SectionCard } from "@/components/section-card";
 import { UserCreateModal } from "@/components/user-create-modal";
 import { requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
-import { readSearchParam } from "@/lib/query";
-import { listUsers } from "@/lib/store";
+import { listUsers } from "@/lib/db";
 
-type SettingsPageProps = {
-  searchParams?: Promise<{
-    success?: string | string[];
-    error?: string | string[];
-    context?: string | string[];
-  }>;
-};
-
-export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+export default async function SettingsPage() {
   const session = await requireSession();
 
   if (session.role !== "admin") {
     redirect("/dashboard");
   }
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const success = readSearchParam(resolvedSearchParams?.success);
-  const error = readSearchParam(resolvedSearchParams?.error);
-  const context = readSearchParam(resolvedSearchParams?.context);
-  const createError = context === "create" ? error : undefined;
-  const pageError = context === "create" ? undefined : error;
-
-  const users = listUsers();
+  const users = await listUsers();
 
   return (
     <div className="space-y-6">
-      <NoticeBanner success={success} error={pageError} />
-
       <SectionCard
         title="Crear usuario"
         description="Asistente guiado para crear usuarios y asignar roles"
       >
-        <UserCreateModal formError={createError} />
+        <UserCreateModal />
       </SectionCard>
 
       <SectionCard title="Usuarios activos" description="Roles disponibles: admin y empleado">

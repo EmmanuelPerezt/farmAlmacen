@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-
-type WarehouseCreateModalProps = {
-  formError?: string;
-};
+import { useRouter } from "next/navigation";
 
 type WarehouseWizardForm = {
   name: string;
@@ -22,10 +19,13 @@ function getDefaultForm(): WarehouseWizardForm {
   };
 }
 
-export function WarehouseCreateModal({ formError }: WarehouseCreateModalProps) {
-  const [isOpen, setIsOpen] = useState(Boolean(formError));
+export function WarehouseCreateModal() {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<WarehouseWizardForm>(getDefaultForm);
   const lastStepEnteredAtRef = useRef(0);
 
@@ -95,6 +95,7 @@ export function WarehouseCreateModal({ formError }: WarehouseCreateModalProps) {
   const openModal = () => {
     setStep(1);
     setStepError(null);
+    setApiError(null);
     setForm(getDefaultForm());
     lastStepEnteredAtRef.current = 0;
     setIsOpen(true);
@@ -103,25 +104,46 @@ export function WarehouseCreateModal({ formError }: WarehouseCreateModalProps) {
   const closeModal = () => {
     setIsOpen(false);
     setStepError(null);
+    setApiError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    if (step < 2) {
-      event.preventDefault();
-      return;
-    }
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    if (Date.now() - lastStepEnteredAtRef.current < 450) {
-      event.preventDefault();
-      return;
-    }
+    if (step < 2) return;
+
+    if (Date.now() - lastStepEnteredAtRef.current < 450) return;
 
     const error = validateStep(2);
-
     if (error) {
-      event.preventDefault();
       setStepError(error);
       setStep(1);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const res = await fetch("/api/warehouses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, description: form.description }),
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setApiError(data.error ?? "No fue posible crear el almacen.");
+        return;
+      }
+
+      closeModal();
+      router.refresh();
+    } catch {
+      setApiError("Error de conexion. Intenta nuevamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -209,16 +231,14 @@ export function WarehouseCreateModal({ formError }: WarehouseCreateModalProps) {
                 </div>
 
                 <form
-                  action="/api/warehouses"
-                  method="post"
                   onSubmit={handleSubmit}
                   onKeyDown={handleFormKeyDown}
                   className="flex min-h-0 flex-1 flex-col"
                 >
                   <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                    {formError ? (
+                    {apiError ? (
                       <div className="mb-4 rounded-xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
-                        {formError}
+                        {apiError}
                       </div>
                     ) : null}
 
@@ -281,10 +301,6 @@ export function WarehouseCreateModal({ formError }: WarehouseCreateModalProps) {
                         </div>
                       </section>
                     ) : null}
-
-                    <input type="hidden" name="intent" value="create" />
-                    <input type="hidden" name="name" value={form.name} />
-                    <input type="hidden" name="description" value={form.description} />
                   </div>
 
                   <div className="shrink-0 border-t border-[var(--border-light)] px-5 py-4 sm:px-6">
@@ -313,8 +329,12 @@ export function WarehouseCreateModal({ formError }: WarehouseCreateModalProps) {
                             Siguiente
                           </button>
                         ) : (
-                          <button type="submit" className="action-btn action-btn-primary">
-                            Guardar almacen
+                          <button
+                            type="submit"
+                            className="action-btn action-btn-primary"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? "Guardando..." : "Guardar almacen"}
                           </button>
                         )}
                       </div>

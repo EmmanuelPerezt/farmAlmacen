@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String     @id @default(cuid())
+  username    String     @unique
+  password    String
+  displayName String
+  role        String
+  createdAt   DateTime   @default(now())
+  movements   Movement[]
+  sales       Sale[]
+}
+
+model Product {
+  sku       Int         @id
+  name      String
+  price     Float
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  inventory Inventory[]
+  movements Movement[]
+}
+
+model Warehouse {
+  id              String      @id @default(cuid())
+  name            String      @unique
+  description     String      @default("")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  inventory       Inventory[]
+  sourceMovements Movement[]  @relation("SourceWarehouse")
+  targetMovements Movement[]  @relation("TargetWarehouse")
+  sales           Sale[]
+}
+
+model Inventory {
+  warehouseId String
+  sku         Int
+  qty         Int       @default(0)
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  product     Product   @relation(fields: [sku], references: [sku])
+
+  @@id([warehouseId, sku])
+}
+
+model Movement {
+  id                  String     @id @default(cuid())
+  type                String
+  sku                 Int
+  productName         String
+  quantity            Int
+  sourceWarehouseId   String?
+  sourceWarehouseName String?
+  targetWarehouseId   String?
+  targetWarehouseName String?
+  sourceBeforeQty     Int?
+  sourceAfterQty      Int?
+  targetBeforeQty     Int?
+  targetAfterQty      Int?
+  performedBy         String
+  performedByName     String
+  note                String     @default("")
+  createdAt           DateTime   @default(now())
+  product             Product    @relation(fields: [sku], references: [sku])
+  sourceWarehouse     Warehouse? @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
+  targetWarehouse     Warehouse? @relation("TargetWarehouse", fields: [targetWarehouseId], references: [id])
+  performer           User       @relation(fields: [performedBy], references: [username])
+}
+
+model Sale {
+  id              String    @id @default(cuid())
+  warehouseId     String
+  warehouseName   String
+  items           String
+  itemCount       Int
+  total           Float
+  cashReceived    Float
+  change          Float
+  performedBy     String
+  performedByName String
+  createdAt       DateTime  @default(now())
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  performer       User      @relation(fields: [performedBy], references: [username])
+}

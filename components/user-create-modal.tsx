@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 
 import type { Role } from "@/lib/types";
-
-type UserCreateModalProps = {
-  formError?: string;
-};
 
 type UserWizardForm = {
   username: string;
@@ -28,10 +25,13 @@ function getDefaultForm(): UserWizardForm {
   };
 }
 
-export function UserCreateModal({ formError }: UserCreateModalProps) {
-  const [isOpen, setIsOpen] = useState(Boolean(formError));
+export function UserCreateModal() {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<UserWizardForm>(getDefaultForm);
   const lastStepEnteredAtRef = useRef(0);
 
@@ -108,6 +108,7 @@ export function UserCreateModal({ formError }: UserCreateModalProps) {
   const openModal = () => {
     setStep(1);
     setStepError(null);
+    setApiError(null);
     setForm(getDefaultForm());
     lastStepEnteredAtRef.current = 0;
     setIsOpen(true);
@@ -116,25 +117,51 @@ export function UserCreateModal({ formError }: UserCreateModalProps) {
   const closeModal = () => {
     setIsOpen(false);
     setStepError(null);
+    setApiError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    if (step < 2) {
-      event.preventDefault();
-      return;
-    }
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    if (Date.now() - lastStepEnteredAtRef.current < 450) {
-      event.preventDefault();
-      return;
-    }
+    if (step < 2) return;
+
+    if (Date.now() - lastStepEnteredAtRef.current < 450) return;
 
     const error = validateStep(2);
-
     if (error) {
-      event.preventDefault();
       setStepError(error);
       setStep(1);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.username,
+          password: form.password,
+          displayName: form.displayName,
+          role: form.role,
+        }),
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setApiError(data.error ?? "No fue posible crear el usuario.");
+        return;
+      }
+
+      closeModal();
+      router.refresh();
+    } catch {
+      setApiError("Error de conexion. Intenta nuevamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -244,16 +271,14 @@ export function UserCreateModal({ formError }: UserCreateModalProps) {
                 </div>
 
                 <form
-                  action="/api/users"
-                  method="post"
                   onSubmit={handleSubmit}
                   onKeyDown={handleFormKeyDown}
                   className="flex min-h-0 flex-1 flex-col"
                 >
                   <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                    {formError ? (
+                    {apiError ? (
                       <div className="mb-4 rounded-xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
-                        {formError}
+                        {apiError}
                       </div>
                     ) : null}
 
@@ -353,11 +378,6 @@ export function UserCreateModal({ formError }: UserCreateModalProps) {
                         </div>
                       </section>
                     ) : null}
-
-                    <input type="hidden" name="username" value={form.username} />
-                    <input type="hidden" name="password" value={form.password} />
-                    <input type="hidden" name="displayName" value={form.displayName} />
-                    <input type="hidden" name="role" value={form.role} />
                   </div>
 
                   <div className="shrink-0 border-t border-[var(--border-light)] px-5 py-4 sm:px-6">
@@ -386,8 +406,12 @@ export function UserCreateModal({ formError }: UserCreateModalProps) {
                             Siguiente
                           </button>
                         ) : (
-                          <button type="submit" className="action-btn action-btn-primary">
-                            Crear usuario
+                          <button
+                            type="submit"
+                            className="action-btn action-btn-primary"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? "Guardando..." : "Crear usuario"}
                           </button>
                         )}
                       </div>
