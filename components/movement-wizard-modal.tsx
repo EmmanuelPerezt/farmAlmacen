@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 
 import type { ProductWithStock, Warehouse } from "@/lib/types";
 
 type MovementWizardModalProps = {
   products: ProductWithStock[];
   warehouses: Warehouse[];
-  formError?: string;
 };
 
 type MovementType = "entrada" | "salida" | "traslado";
@@ -57,10 +57,13 @@ function getDefaultForm(): WizardForm {
   };
 }
 
-export function MovementWizardModal({ products, warehouses, formError }: MovementWizardModalProps) {
-  const [isOpen, setIsOpen] = useState(Boolean(formError));
+export function MovementWizardModal({ products, warehouses }: MovementWizardModalProps) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<WizardForm>(getDefaultForm);
   const lastStepEnteredAtRef = useRef(0);
 
@@ -212,6 +215,7 @@ export function MovementWizardModal({ products, warehouses, formError }: Movemen
   const openModal = () => {
     setStep(1);
     setStepError(null);
+    setApiError(null);
     setForm(getDefaultForm());
     lastStepEnteredAtRef.current = 0;
     setIsOpen(true);
@@ -220,25 +224,53 @@ export function MovementWizardModal({ products, warehouses, formError }: Movemen
   const closeModal = () => {
     setIsOpen(false);
     setStepError(null);
+    setApiError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    if (step < 4) {
-      event.preventDefault();
-      return;
-    }
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    if (Date.now() - lastStepEnteredAtRef.current < 450) {
-      event.preventDefault();
-      return;
-    }
+    if (step < 4) return;
+
+    if (Date.now() - lastStepEnteredAtRef.current < 450) return;
 
     const error = validateStep(4);
-
     if (error) {
-      event.preventDefault();
       setStepError(error);
       setStep(error.includes("producto") || error.includes("cantidad") ? 2 : 3);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const res = await fetch("/api/movements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: form.type,
+          sku: Number(form.sku),
+          quantity: Number(form.quantity),
+          sourceWarehouseId: form.sourceWarehouseId || undefined,
+          targetWarehouseId: form.targetWarehouseId || undefined,
+          note: form.note,
+        }),
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setApiError(data.error ?? "No fue posible registrar el movimiento.");
+        return;
+      }
+
+      closeModal();
+      router.refresh();
+    } catch {
+      setApiError("Error de conexion. Intenta nuevamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -327,16 +359,14 @@ export function MovementWizardModal({ products, warehouses, formError }: Movemen
             </div>
 
             <form
-              action="/api/movements"
-              method="post"
               onSubmit={handleSubmit}
               onKeyDown={handleFormKeyDown}
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                {formError ? (
+                {apiError ? (
                   <div className="mb-4 rounded-xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
-                    {formError}
+                    {apiError}
                   </div>
                 ) : null}
 
@@ -539,13 +569,6 @@ export function MovementWizardModal({ products, warehouses, formError }: Movemen
 
                   </section>
                 ) : null}
-
-                <input type="hidden" name="type" value={form.type} />
-                <input type="hidden" name="sku" value={form.sku} />
-                <input type="hidden" name="quantity" value={form.quantity} />
-                <input type="hidden" name="sourceWarehouseId" value={form.sourceWarehouseId} />
-                <input type="hidden" name="targetWarehouseId" value={form.targetWarehouseId} />
-                <input type="hidden" name="note" value={form.note} />
               </div>
 
               <div className="shrink-0 border-t border-[var(--border-light)] px-5 py-4 sm:px-6">
@@ -566,8 +589,12 @@ export function MovementWizardModal({ products, warehouses, formError }: Movemen
                         Siguiente
                       </button>
                     ) : (
-                      <button type="submit" className="action-btn action-btn-primary">
-                        Confirmar movimiento
+                      <button
+                        type="submit"
+                        className="action-btn action-btn-primary"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Registrando..." : "Confirmar movimiento"}
                       </button>
                     )}
                   </div>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { setSessionCookie } from "@/lib/auth";
-import { authenticateUser } from "@/lib/store";
+import { authenticateUser } from "@/lib/db";
 
 function redirectWithError(request: NextRequest, message: string): NextResponse {
   const url = new URL("/login", request.url);
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return redirectWithError(request, "Debes ingresar usuario y contrasena.");
   }
 
-  const session = authenticateUser(username, password);
+  const session = await authenticateUser(username, password);
   if (!session) {
     return redirectWithError(request, "Credenciales invalidas.");
   }

@@ -2,107 +2,50 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
-import { createProduct, deleteProduct, updateProduct } from "@/lib/store";
+import { createProduct, listProductsWithStock } from "@/lib/db";
 
-type ProductIntent = "create" | "update" | "delete";
-
-function redirectToProducts(
-  request: NextRequest,
-  params: { success?: string; error?: string; context?: ProductIntent },
-): NextResponse {
-  const url = new URL("/productos", request.url);
-
-  if (params.success) {
-    url.searchParams.set("success", params.success);
-  }
-
-  if (params.error) {
-    url.searchParams.set("error", params.error);
-  }
-
-  if (params.context) {
-    url.searchParams.set("context", params.context);
-  }
-
-  return NextResponse.redirect(url);
-}
-
-function requireAdmin(request: NextRequest): NextResponse | null {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = getSessionFromRequest(request);
-
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  if (session.role !== "admin") {
-    return redirectToProducts(request, { error: "No tienes permisos para esta accion." });
-  }
-
-  return null;
-}
-
-function parseIntField(value: FormDataEntryValue | null): number {
-  return Number(String(value ?? ""));
-}
-
-function parseFloatField(value: FormDataEntryValue | null): number {
-  return Number(String(value ?? ""));
+  const products = await listProductsWithStock();
+  return NextResponse.json({ products });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authError = requireAdmin(request);
-  if (authError) {
-    return authError;
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+  if (session.role !== "admin") {
+    return NextResponse.json({ error: "No tienes permisos para esta accion." }, { status: 403 });
   }
 
-  const formData = await request.formData();
-  const intent = String(formData.get("intent") ?? "") as ProductIntent;
+  const body = await request.json() as {
+    sku?: unknown;
+    name?: unknown;
+    price?: unknown;
+    initialQty?: unknown;
+    initialWarehouseId?: unknown;
+  };
 
   try {
-    if (intent === "create") {
-      const initialQtyRaw = String(formData.get("initialQty") ?? "0").trim();
-
-      createProduct({
-        sku: parseIntField(formData.get("sku")),
-        name: String(formData.get("name") ?? ""),
-        price: parseFloatField(formData.get("price")),
-        initialQty: initialQtyRaw ? parseIntField(formData.get("initialQty")) : 0,
-        initialWarehouseId: String(formData.get("initialWarehouseId") ?? "").trim() || undefined,
-      });
-
-      return redirectToProducts(request, {
-        success: "Producto creado correctamente.",
-        context: "create",
-      });
-    }
-
-    if (intent === "update") {
-      updateProduct({
-        sku: parseIntField(formData.get("sku")),
-        name: String(formData.get("name") ?? ""),
-        price: parseFloatField(formData.get("price")),
-      });
-
-      return redirectToProducts(request, {
-        success: "Producto actualizado.",
-        context: "update",
-      });
-    }
-
-    if (intent === "delete") {
-      deleteProduct(parseIntField(formData.get("sku")));
-      return redirectToProducts(request, {
-        success: "Producto eliminado.",
-        context: "delete",
-      });
-    }
-
-    return redirectToProducts(request, { error: "Operacion no reconocida." });
+    const product = await createProduct({
+      sku: Number(body.sku),
+      name: String(body.name ?? ""),
+      price: Number(body.price),
+      initialQty: body.initialQty !== undefined ? Number(body.initialQty) : 0,
+      initialWarehouseId:
+        typeof body.initialWarehouseId === "string" && body.initialWarehouseId.trim()
+          ? body.initialWarehouseId.trim()
+          : undefined,
+    });
+    return NextResponse.json({ product }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No fue posible procesar la solicitud.";
-    const context: ProductIntent | undefined =
-      intent === "create" || intent === "update" || intent === "delete" ? intent : undefined;
-
-    return redirectToProducts(request, { error: message, context });
+    const message =
+      error instanceof Error ? error.message : "No fue posible procesar la solicitud.";
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 }

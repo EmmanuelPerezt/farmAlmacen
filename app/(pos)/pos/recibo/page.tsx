@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { PosReceipt } from "@/components/pos-receipt";
 import { readSearchParam } from "@/lib/query";
-import { findSaleById } from "@/lib/store";
+import { findSaleById } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function ReceiptPage({ searchParams }: ReceiptPageProps) {
 
   let sale;
   try {
-    sale = findSaleById(saleId);
+    sale = await findSaleById(saleId);
   } catch {
     redirect("/pos");
   }

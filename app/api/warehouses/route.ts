@@ -2,94 +2,38 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
-import { createWarehouse, deleteWarehouse, updateWarehouse } from "@/lib/store";
+import { createWarehouse, listWarehousesWithStock } from "@/lib/db";
 
-type WarehouseIntent = "create" | "update" | "delete";
-
-function redirectToWarehouses(
-  request: NextRequest,
-  params: { success?: string; error?: string; context?: WarehouseIntent },
-): NextResponse {
-  const url = new URL("/almacenes", request.url);
-
-  if (params.success) {
-    url.searchParams.set("success", params.success);
-  }
-
-  if (params.error) {
-    url.searchParams.set("error", params.error);
-  }
-
-  if (params.context) {
-    url.searchParams.set("context", params.context);
-  }
-
-  return NextResponse.redirect(url);
-}
-
-function requireAdmin(request: NextRequest): NextResponse | null {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = getSessionFromRequest(request);
-
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  if (session.role !== "admin") {
-    return redirectToWarehouses(request, { error: "No tienes permisos para esta accion." });
-  }
-
-  return null;
+  const warehouses = await listWarehousesWithStock();
+  return NextResponse.json({ warehouses });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authError = requireAdmin(request);
-  if (authError) {
-    return authError;
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+  if (session.role !== "admin") {
+    return NextResponse.json({ error: "No tienes permisos para esta accion." }, { status: 403 });
   }
 
-  const formData = await request.formData();
-  const intent = String(formData.get("intent") ?? "") as WarehouseIntent;
+  const body = await request.json() as { name?: unknown; description?: unknown };
 
   try {
-    if (intent === "create") {
-      createWarehouse({
-        name: String(formData.get("name") ?? ""),
-        description: String(formData.get("description") ?? ""),
-      });
-
-      return redirectToWarehouses(request, {
-        success: "Almacen creado correctamente.",
-        context: "create",
-      });
-    }
-
-    if (intent === "update") {
-      updateWarehouse({
-        id: String(formData.get("id") ?? ""),
-        name: String(formData.get("name") ?? ""),
-        description: String(formData.get("description") ?? ""),
-      });
-
-      return redirectToWarehouses(request, {
-        success: "Almacen actualizado.",
-        context: "update",
-      });
-    }
-
-    if (intent === "delete") {
-      deleteWarehouse(String(formData.get("id") ?? ""));
-      return redirectToWarehouses(request, {
-        success: "Almacen eliminado.",
-        context: "delete",
-      });
-    }
-
-    return redirectToWarehouses(request, { error: "Operacion no reconocida." });
+    const warehouse = await createWarehouse({
+      name: String(body.name ?? ""),
+      description: typeof body.description === "string" ? body.description : "",
+    });
+    return NextResponse.json({ warehouse }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No fue posible procesar la solicitud.";
-    const context: WarehouseIntent | undefined =
-      intent === "create" || intent === "update" || intent === "delete" ? intent : undefined;
-
-    return redirectToWarehouses(request, { error: message, context });
+    const message =
+      error instanceof Error ? error.message : "No fue posible procesar la solicitud.";
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 }

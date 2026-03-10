@@ -2,66 +2,58 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
-import { createUser } from "@/lib/store";
+import { createUser, listUsers } from "@/lib/db";
 import type { Role } from "@/lib/types";
-
-function redirectToSettings(
-  request: NextRequest,
-  params: { success?: string; error?: string; context?: "create" },
-): NextResponse {
-  const url = new URL("/configuracion", request.url);
-
-  if (params.success) {
-    url.searchParams.set("success", params.success);
-  }
-
-  if (params.error) {
-    url.searchParams.set("error", params.error);
-  }
-
-  if (params.context) {
-    url.searchParams.set("context", params.context);
-  }
-
-  return NextResponse.redirect(url);
-}
 
 function isRole(value: string): value is Role {
   return value === "admin" || value === "empleado";
 }
 
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+  if (session.role !== "admin") {
+    return NextResponse.json({ error: "No tienes permisos para esta accion." }, { status: 403 });
+  }
+
+  const users = await listUsers();
+  return NextResponse.json({ users });
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = getSessionFromRequest(request);
-
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
-
   if (session.role !== "admin") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.json({ error: "No tienes permisos para esta accion." }, { status: 403 });
   }
 
-  const formData = await request.formData();
-  const roleRaw = String(formData.get("role") ?? "empleado").trim();
+  const body = await request.json() as {
+    username?: unknown;
+    password?: unknown;
+    displayName?: unknown;
+    role?: unknown;
+  };
 
+  const roleRaw = String(body.role ?? "empleado").trim();
   if (!isRole(roleRaw)) {
-    return redirectToSettings(request, { error: "Rol no valido.", context: "create" });
+    return NextResponse.json({ error: "Rol no valido." }, { status: 422 });
   }
 
   try {
-    createUser({
-      username: String(formData.get("username") ?? ""),
-      password: String(formData.get("password") ?? ""),
-      displayName: String(formData.get("displayName") ?? ""),
+    const user = await createUser({
+      username: String(body.username ?? ""),
+      password: String(body.password ?? ""),
+      displayName: String(body.displayName ?? ""),
       role: roleRaw,
     });
-
-    return redirectToSettings(request, {
-      success: "Usuario creado correctamente.",
-      context: "create",
-    });
+    return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No fue posible crear el usuario.";
-    return redirectToSettings(request, { error: message, context: "create" });
+    const message =
+      error instanceof Error ? error.message : "No fue posible crear el usuario.";
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 }

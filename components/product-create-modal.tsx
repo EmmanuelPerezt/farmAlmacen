@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import type { IScannerControls } from "@zxing/browser";
 
 import type { Warehouse } from "@/lib/types";
 
 type ProductCreateModalProps = {
   warehouses: Warehouse[];
-  formError?: string;
 };
 
 type ProductWizardForm = {
@@ -32,10 +32,13 @@ function getDefaultForm(): ProductWizardForm {
   };
 }
 
-export function ProductCreateModal({ warehouses, formError }: ProductCreateModalProps) {
-  const [isOpen, setIsOpen] = useState(Boolean(formError));
+export function ProductCreateModal({ warehouses }: ProductCreateModalProps) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<ProductWizardForm>(getDefaultForm);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isScannerBooting, setIsScannerBooting] = useState(false);
@@ -311,6 +314,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
     scannerControlsRef.current = null;
     setStep(1);
     setStepError(null);
+    setApiError(null);
     setForm(getDefaultForm());
     setIsScannerOpen(false);
     setIsScannerBooting(false);
@@ -334,6 +338,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
     setScannerError(null);
     setIsOpen(false);
     setStepError(null);
+    setApiError(null);
   };
 
   const openScanner = () => {
@@ -384,33 +389,54 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    if (step < 3) {
-      event.preventDefault();
-      return;
-    }
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    if (Date.now() - lastStepEnteredAtRef.current < 450) {
-      event.preventDefault();
-      return;
-    }
+    if (step < 3) return;
+
+    if (Date.now() - lastStepEnteredAtRef.current < 450) return;
 
     const error = validateStep(3);
-
     if (error) {
-      event.preventDefault();
       setStepError(error);
 
-      if (
-        error.includes("SKU") ||
-        error.includes("nombre") ||
-        error.includes("precio")
-      ) {
+      if (error.includes("SKU") || error.includes("nombre") || error.includes("precio")) {
         setStep(1);
+      } else {
+        setStep(2);
+      }
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sku: skuValue,
+          name: form.name,
+          price: priceValue,
+          initialQty: initialQtyValue,
+          initialWarehouseId: form.initialWarehouseId || undefined,
+        }),
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setApiError(data.error ?? "No fue posible crear el producto.");
         return;
       }
 
-      setStep(2);
+      closeModal();
+      router.refresh();
+    } catch {
+      setApiError("Error de conexion. Intenta nuevamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -500,16 +526,14 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                 </div>
 
                 <form
-                  action="/api/products"
-                  method="post"
                   onSubmit={handleSubmit}
                   onKeyDown={handleFormKeyDown}
                   className="flex min-h-0 flex-1 flex-col"
                 >
                   <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                    {formError ? (
+                    {apiError ? (
                       <div className="mb-4 rounded-xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
-                        {formError}
+                        {apiError}
                       </div>
                     ) : null}
 
@@ -672,13 +696,6 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                         </div>
                       </section>
                     ) : null}
-
-                    <input type="hidden" name="intent" value="create" />
-                    <input type="hidden" name="sku" value={form.sku} />
-                    <input type="hidden" name="name" value={form.name} />
-                    <input type="hidden" name="price" value={form.price} />
-                    <input type="hidden" name="initialQty" value={form.initialQty} />
-                    <input type="hidden" name="initialWarehouseId" value={form.initialWarehouseId} />
                   </div>
 
                   <div className="shrink-0 border-t border-[var(--border-light)] px-5 py-4 sm:px-6">
@@ -707,8 +724,12 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                             Siguiente
                           </button>
                         ) : (
-                          <button type="submit" className="action-btn action-btn-primary">
-                            Guardar producto
+                          <button
+                            type="submit"
+                            className="action-btn action-btn-primary"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? "Guardando..." : "Guardar producto"}
                           </button>
                         )}
                       </div>

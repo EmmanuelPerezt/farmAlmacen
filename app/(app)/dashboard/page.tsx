@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { SectionCard } from "@/components/section-card";
 import { formatDateTime } from "@/lib/format";
-import { getDashboardMetrics } from "@/lib/store";
+import { getDashboardMetrics } from "@/lib/db";
 
 const movementLabels = {
   entrada: "Entrada",
@@ -10,8 +10,8 @@ const movementLabels = {
   traslado: "Traslado",
 };
 
-export default function DashboardPage() {
-  const metrics = getDashboardMetrics();
+export default async function DashboardPage() {
+  const metrics = await getDashboardMetrics();
 
   const topCards = [
     {

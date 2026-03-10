@@ -2,54 +2,60 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
-import { createMovement } from "@/lib/store";
+import { createMovement, listMovements } from "@/lib/db";
 import type { MovementType } from "@/lib/types";
 
-function redirectToMovements(
-  request: NextRequest,
-  params: { success?: string; error?: string },
-): NextResponse {
-  const url = new URL("/movimientos", request.url);
-
-  if (params.success) {
-    url.searchParams.set("success", params.success);
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  if (params.error) {
-    url.searchParams.set("error", params.error);
-  }
+  const { searchParams } = new URL(request.url);
+  const limitParam = searchParams.get("limit");
+  const limit = limitParam ? Number(limitParam) : undefined;
 
-  return NextResponse.redirect(url);
-}
-
-function parseInteger(value: FormDataEntryValue | null): number {
-  return Number(String(value ?? ""));
+  const movements = await listMovements(limit);
+  return NextResponse.json({ movements });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = getSessionFromRequest(request);
-
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const formData = await request.formData();
-  const type = String(formData.get("type") ?? "") as MovementType;
+  const body = await request.json() as {
+    type?: unknown;
+    sku?: unknown;
+    quantity?: unknown;
+    sourceWarehouseId?: unknown;
+    targetWarehouseId?: unknown;
+    note?: unknown;
+  };
+
+  const type = String(body.type ?? "") as MovementType;
 
   try {
-    createMovement({
+    const movement = await createMovement({
       type,
-      sku: parseInteger(formData.get("sku")),
-      quantity: parseInteger(formData.get("quantity")),
-      sourceWarehouseId: String(formData.get("sourceWarehouseId") ?? "").trim() || undefined,
-      targetWarehouseId: String(formData.get("targetWarehouseId") ?? "").trim() || undefined,
-      note: String(formData.get("note") ?? ""),
+      sku: Number(body.sku),
+      quantity: Number(body.quantity),
+      sourceWarehouseId:
+        typeof body.sourceWarehouseId === "string" && body.sourceWarehouseId.trim()
+          ? body.sourceWarehouseId.trim()
+          : undefined,
+      targetWarehouseId:
+        typeof body.targetWarehouseId === "string" && body.targetWarehouseId.trim()
+          ? body.targetWarehouseId.trim()
+          : undefined,
+      note: typeof body.note === "string" ? body.note : "",
       actor: session,
     });
-
-    return redirectToMovements(request, { success: "Movimiento registrado correctamente." });
+    return NextResponse.json({ movement }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No fue posible registrar el movimiento.";
-    return redirectToMovements(request, { error: message });
+    const message =
+      error instanceof Error ? error.message : "No fue posible registrar el movimiento.";
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 }

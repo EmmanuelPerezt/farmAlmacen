@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import { formatMoney } from "@/lib/format";
 import type { ProductWithStock } from "@/lib/types";
@@ -9,6 +11,121 @@ type ProductsCatalogProps = {
   products: ProductWithStock[];
   isAdmin: boolean;
 };
+
+type ProductEditPanelProps = {
+  product: ProductWithStock;
+  onClose: () => void;
+};
+
+function ProductEditPanel({ product, onClose }: ProductEditPanelProps) {
+  const router = useRouter();
+  const [name, setName] = useState(product.name);
+  const [price, setPrice] = useState(String(product.price));
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleUpdate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsUpdating(true);
+    setUpdateError(null);
+
+    try {
+      const res = await fetch(`/api/products/${product.sku}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, price: Number(price) }),
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setUpdateError(data.error ?? "No fue posible actualizar.");
+        return;
+      }
+
+      onClose();
+      router.refresh();
+    } catch {
+      setUpdateError("Error de conexion.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await fetch(`/api/products/${product.sku}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setDeleteError(data.error ?? "No fue posible eliminar.");
+        return;
+      }
+
+      onClose();
+      router.refresh();
+    } catch {
+      setDeleteError("Error de conexion.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 grid gap-3">
+      <form onSubmit={handleUpdate} className="grid gap-2 sm:grid-cols-2">
+        <input
+          name="name"
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="form-input"
+        />
+        <input
+          name="price"
+          type="number"
+          min={0}
+          step="0.01"
+          required
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="form-input"
+        />
+        {updateError ? (
+          <p className="text-xs text-[var(--danger-text)] sm:col-span-2">{updateError}</p>
+        ) : null}
+        <button
+          type="submit"
+          className="action-btn action-btn-soft sm:col-span-2"
+          disabled={isUpdating}
+        >
+          {isUpdating ? "Guardando..." : "Actualizar"}
+        </button>
+      </form>
+
+      {deleteError ? (
+        <p className="text-xs text-[var(--danger-text)]">{deleteError}</p>
+      ) : null}
+      <button
+        type="button"
+        onClick={handleDelete}
+        className="action-btn action-btn-danger w-full"
+        disabled={isDeleting}
+      >
+        {isDeleting ? "Eliminando..." : "Eliminar producto"}
+      </button>
+    </div>
+  );
+}
 
 function getStockStatus(totalQty: number): "critico" | "medio" | "estable" {
   if (totalQty <= 10) {
@@ -211,40 +328,12 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                       </div>
 
                       {isEditing ? (
-                        <div className="mt-3 grid gap-3">
-                          <form action="/api/products" method="post" className="grid gap-2 sm:grid-cols-2">
-                            <input type="hidden" name="intent" value="update" />
-                            <input type="hidden" name="sku" value={product.sku} />
-
-                            <input
-                              name="name"
-                              type="text"
-                              required
-                              defaultValue={product.name}
-                              className="form-input"
-                            />
-                            <input
-                              name="price"
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              required
-                              defaultValue={product.price}
-                              className="form-input"
-                            />
-                            <button type="submit" className="action-btn action-btn-soft sm:col-span-2">
-                              Actualizar
-                            </button>
-                          </form>
-
-                          <form action="/api/products" method="post" className="w-full">
-                            <input type="hidden" name="intent" value="delete" />
-                            <input type="hidden" name="sku" value={product.sku} />
-                            <button type="submit" className="action-btn action-btn-danger w-full">
-                              Eliminar producto
-                            </button>
-                          </form>
-                        </div>
+                        <ProductEditPanel
+                          product={product}
+                          onClose={() =>
+                            setEditingSkus((prev) => ({ ...prev, [product.sku]: false }))
+                          }
+                        />
                       ) : (
                         <p className="mt-2 text-xs text-[var(--ink-soft)]">
                           Pulsa Editar para mostrar acciones de mantenimiento.
