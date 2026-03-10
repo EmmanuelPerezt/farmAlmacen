@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(31,99,85,0.16),transparent_34%),radial-gradient(circle_at_88%_14%,rgba(47,138,119,0.16),transparent_35%),linear-gradient(140deg,#f6f9f4_0%,#eef4ef_55%,#e6ede4_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(31,99,85,0.16),transparent_34%),radial-gradient(circle_at_88%_14%,rgba(47,138,119,0.16),transparent_35%),linear-gradient(140deg,var(--background)_0%,var(--paper)_55%,var(--background)_100%)]" />
 
       <div className="relative grid w-full max-w-5xl gap-6 lg:grid-cols-[1fr_1.05fr]">
         <section className="panel app-enter app-enter-delay-1 overflow-hidden p-7">

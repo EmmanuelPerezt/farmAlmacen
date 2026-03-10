@@ -115,7 +115,7 @@ export default function DashboardPage() {
                     {metrics.latestMovements.map((movement) => (
                       <tr
                         key={movement.id}
-                        className="border-b border-[var(--border)] transition hover:bg-[color:rgba(31,99,85,0.05)]"
+                        className="border-b border-[var(--border)] transition hover:bg-[var(--hover-tint)]"
                       >
                         <td className="py-2 pr-3 text-[var(--foreground)]">
                           <span className="rounded-full border border-[color:rgba(31,99,85,0.24)] bg-[color:rgba(31,99,85,0.1)] px-2 py-1 text-xs font-semibold text-[var(--primary-strong)]">
@@ -150,17 +150,17 @@ export default function DashboardPage() {
               {metrics.lowStockProducts.map((product) => (
                 <li
                   key={product.sku}
-                  className="rounded-2xl border border-[color:rgba(217,45,32,0.34)] bg-[color:rgba(217,45,32,0.08)] px-3 py-2"
+                  className="rounded-2xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 break-words text-sm font-semibold leading-snug text-[var(--danger)]">
                       {product.name}
                     </p>
-                    <span className="shrink-0 rounded-full border border-[color:rgba(217,45,32,0.3)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[color:#9b2c2c]">
+                    <span className="shrink-0 rounded-full border border-[color:rgba(217,45,32,0.3)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--danger-text)]">
                       {product.totalQty}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-[color:#9b2c2c]">SKU {product.sku}</p>
+                  <p className="mt-1 text-xs text-[var(--danger-text)]">SKU {product.sku}</p>
                 </li>
               ))}
             </ul>

@@ -146,7 +146,7 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
       {/* Left: Product search + grid */}
       <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6">
         {error ? (
-          <div className="mb-4 rounded-lg border border-[color:rgba(185,28,28,0.28)] bg-[color:rgba(185,28,28,0.08)] px-3 py-2 text-sm text-[color:#991b1b]">
+          <div className="mb-4 rounded-lg border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
             {error}
           </div>
         ) : null}
@@ -196,7 +196,7 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
                   className={`rounded-xl border px-3 py-3 text-left transition ${
                     inCart
                       ? "border-[color:rgba(31,99,85,0.4)] bg-[color:rgba(31,99,85,0.08)]"
-                      : "border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.85)] hover:border-[color:rgba(31,99,85,0.3)]"
+                      : "border-[var(--border)] bg-[var(--surface)] hover:border-[color:rgba(31,99,85,0.3)]"
                   } disabled:opacity-50`}
                 >
                   <p className="text-sm font-semibold text-[var(--foreground)] leading-tight">{product.name}</p>
@@ -218,9 +218,9 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
       </div>
 
       {/* Right: Cart + payment */}
-      <div className="border-t border-[color:rgba(148,163,184,0.28)] bg-[color:rgba(248,252,255,0.95)] lg:w-[380px] lg:border-l lg:border-t-0">
+      <div className="border-t border-[var(--border)] bg-[var(--surface-glass)] lg:w-[380px] lg:border-l lg:border-t-0">
         <div className="flex h-full flex-col">
-          <div className="border-b border-[color:rgba(148,163,184,0.2)] px-4 py-3">
+          <div className="border-b border-[var(--border-light)] px-4 py-3">
             <h3 className="text-sm font-semibold text-[var(--foreground)]">Carrito</h3>
           </div>
 
@@ -234,7 +234,7 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
                 {cart.map((item) => (
                   <div
                     key={item.sku}
-                    className="rounded-lg border border-[color:rgba(148,163,184,0.28)] bg-white px-3 py-2"
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -254,7 +254,7 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.sku, -1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[color:rgba(148,163,184,0.34)] bg-white text-sm font-bold"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-sm font-bold"
                         >
                           −
                         </button>
@@ -263,7 +263,7 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
                           type="button"
                           onClick={() => updateQuantity(item.sku, 1)}
                           disabled={item.quantity >= item.maxQty}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[color:rgba(148,163,184,0.34)] bg-white text-sm font-bold disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-sm font-bold disabled:opacity-40"
                         >
                           +
                         </button>
@@ -279,7 +279,7 @@ export function PosRegister({ warehouses, products, activeWarehouseId, error }: 
           </div>
 
           {/* Payment section */}
-          <div className="border-t border-[color:rgba(148,163,184,0.2)] px-4 py-4">
+          <div className="border-t border-[var(--border-light)] px-4 py-4">
             <div className="flex items-center justify-between text-lg font-bold text-[var(--foreground)]">
               <span>Total</span>
               <span>{formatMoney(total)}</span>

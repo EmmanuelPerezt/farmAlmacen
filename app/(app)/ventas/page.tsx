@@ -38,7 +38,7 @@ export default async function VentasPage({ searchParams }: VentasPageProps) {
               {sales.map((sale) => (
                 <article
                   key={sale.id}
-                  className="rounded-xl border border-[color:rgba(148,163,184,0.3)] bg-[color:rgba(255,255,255,0.85)] px-3 py-3"
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="rounded-full border border-[color:rgba(31,99,85,0.24)] bg-[color:rgba(31,99,85,0.1)] px-2 py-1 text-[0.68rem] font-semibold text-[var(--primary-strong)]">
@@ -76,7 +76,7 @@ export default async function VentasPage({ searchParams }: VentasPageProps) {
             <div className="hidden overflow-x-auto md:block">
               <table className="min-w-[660px] text-sm">
                 <thead>
-                  <tr className="border-b border-[color:rgba(148,163,184,0.34)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
+                  <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">
                     <th className="pb-2 pr-3">ID</th>
                     <th className="pb-2 pr-3">Fecha</th>
                     <th className="pb-2 pr-3">Almacen</th>
@@ -90,7 +90,7 @@ export default async function VentasPage({ searchParams }: VentasPageProps) {
                   {sales.map((sale) => (
                     <tr
                       key={sale.id}
-                      className="border-b border-[color:rgba(148,163,184,0.28)] align-top transition hover:bg-[color:rgba(31,99,85,0.05)]"
+                      className="border-b border-[var(--border)] align-top transition hover:bg-[var(--hover-tint)]"
                     >
                       <td className="py-2 pr-3 text-xs font-semibold text-[var(--foreground)]">
                         {sale.id}

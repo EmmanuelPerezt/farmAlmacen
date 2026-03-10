@@ -33,7 +33,7 @@ function getStockMeta(totalQty: number): {
     return {
       label: "Critico",
       chipClassName:
-        "border-[color:rgba(217,45,32,0.26)] bg-[color:rgba(217,45,32,0.1)] text-[color:#9b2c2c]",
+        "border-[color:rgba(217,45,32,0.26)] bg-[color:rgba(217,45,32,0.1)] text-[var(--danger-text)]",
       ringClassName: "border-[color:rgba(217,45,32,0.26)]",
     };
   }
@@ -42,7 +42,7 @@ function getStockMeta(totalQty: number): {
     return {
       label: "Medio",
       chipClassName:
-        "border-[color:rgba(245,158,11,0.28)] bg-[color:rgba(245,158,11,0.12)] text-[color:#92400e]",
+        "border-[color:rgba(245,158,11,0.28)] bg-[color:rgba(245,158,11,0.12)] text-[var(--ink-muted)]",
       ringClassName: "border-[color:rgba(245,158,11,0.3)]",
     };
   }
@@ -50,7 +50,7 @@ function getStockMeta(totalQty: number): {
   return {
     label: "Estable",
     chipClassName:
-      "border-[color:rgba(15,157,114,0.24)] bg-[color:rgba(15,157,114,0.1)] text-[color:#0f766e]",
+      "border-[color:rgba(15,157,114,0.24)] bg-[color:rgba(15,157,114,0.1)] text-[var(--accent)]",
     ringClassName: "border-[color:rgba(15,157,114,0.24)]",
   };
 }
@@ -137,7 +137,7 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                     <div>
                       <p className="line-clamp-2 text-base font-semibold text-[var(--foreground)]">{product.name}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-full border border-[color:rgba(148,163,184,0.36)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--ink-soft)]">
+                        <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--ink-soft)]">
                           SKU {product.sku}
                         </span>
                         <span
@@ -178,7 +178,7 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                             <p className="max-w-[72%] truncate text-[var(--ink-soft)]">{stock.warehouseName}</p>
                             <p className="font-semibold text-[var(--foreground)]">{stock.qty}</p>
                           </div>
-                          <div className="h-1.5 rounded-full bg-[color:rgba(148,163,184,0.24)]">
+                          <div className="h-1.5 rounded-full bg-[var(--border-light)]">
                             <div
                               className="h-1.5 rounded-full bg-[linear-gradient(90deg,var(--primary),var(--accent))]"
                               style={{ width: toPercentage(stock.qty, maxQty) }}

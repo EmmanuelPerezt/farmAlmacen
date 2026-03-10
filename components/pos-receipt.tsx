@@ -14,7 +14,7 @@ export function PosReceipt({ sale }: PosReceiptProps) {
     <div className="flex min-h-[calc(100vh-57px)] flex-col items-center justify-start px-4 py-8">
       {/* Printable receipt */}
       <div className="pos-receipt-print w-full max-w-sm">
-        <div className="rounded-2xl border border-[color:rgba(148,163,184,0.3)] bg-white px-5 py-6 shadow-[var(--shadow-soft)]">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-6 shadow-[var(--shadow-soft)]">
           <div className="text-center">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent)]">
               FarmAlmacen
@@ -27,7 +27,7 @@ export function PosReceipt({ sale }: PosReceiptProps) {
             </p>
           </div>
 
-          <hr className="my-4 border-dashed border-[color:rgba(148,163,184,0.4)]" />
+          <hr className="my-4 border-dashed border-[var(--border)]" />
 
           <div className="space-y-2">
             {sale.items.map((item, index) => (
@@ -45,7 +45,7 @@ export function PosReceipt({ sale }: PosReceiptProps) {
             ))}
           </div>
 
-          <hr className="my-4 border-dashed border-[color:rgba(148,163,184,0.4)]" />
+          <hr className="my-4 border-dashed border-[var(--border)]" />
 
           <div className="space-y-1">
             <div className="flex items-center justify-between text-base font-bold text-[var(--foreground)]">
@@ -62,7 +62,7 @@ export function PosReceipt({ sale }: PosReceiptProps) {
             </div>
           </div>
 
-          <hr className="my-4 border-dashed border-[color:rgba(148,163,184,0.4)]" />
+          <hr className="my-4 border-dashed border-[var(--border)]" />
 
           <div className="text-center text-xs text-[var(--ink-soft)]">
             <p>Venta: {sale.id}</p>

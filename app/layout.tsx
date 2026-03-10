@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
+import { getThemeFromCookies } from "@/lib/theme";
+
 const displayFont = Fraunces({
   variable: "--font-brand-display",
   subsets: ["latin"],
@@ -23,18 +25,15 @@ export const metadata: Metadata = {
   description: "Gestion de inventario y movimientos para almacenes de farmacias",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const theme = await getThemeFromCookies();
+
   return (
-    <html lang="es" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `(function(){try{var t=localStorage.getItem("farmalmacen-theme");if(t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})()`,
-        }} />
-      </head>
+    <html lang="es" className={theme === "dark" ? "dark" : ""}>
       <body className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} antialiased`}>
         {children}
       </body>

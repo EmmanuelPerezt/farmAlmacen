@@ -8,6 +8,7 @@ import type { Session } from "@/lib/types";
 
 type AppShellProps = {
   user: Session;
+  theme: "light" | "dark";
   children: React.ReactNode;
 };
 
@@ -136,21 +137,17 @@ function getPageTitle(pathname: string): string {
   return "FarmAlmacen";
 }
 
-export function AppShell({ user, children }: AppShellProps) {
+export function AppShell({ user, theme: initialTheme, children }: AppShellProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") return "light";
-    return document.documentElement.classList.contains("dark") ? "dark" : "light";
-  });
+  const [theme, setTheme] = useState<"light" | "dark">(initialTheme);
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     document.documentElement.classList.toggle("dark", next === "dark");
-    localStorage.setItem("farmalmacen-theme", next);
+    document.cookie = `farmalmacen_theme=${next};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
   };
 
   const pageTitle = useMemo(() => getPageTitle(pathname), [pathname]);
@@ -158,16 +155,14 @@ export function AppShell({ user, children }: AppShellProps) {
   return (
     <div className="relative min-h-screen text-[var(--foreground)]">
       <div
-        className={`fixed inset-0 z-40 hidden bg-slate-950/45 transition-opacity md:block lg:hidden ${
-          sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-40 hidden bg-slate-950/45 transition-opacity md:block lg:hidden ${sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
         onClick={() => setSidebarOpen(false)}
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 hidden w-72 flex-col border-r border-[var(--border)] bg-[var(--surface-glass)] px-4 py-4 backdrop-blur transition-transform duration-300 md:flex lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 hidden w-72 flex-col border-r border-[var(--border)] bg-[var(--surface-glass)] px-4 py-4 backdrop-blur transition-transform duration-300 md:flex lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="mb-5 flex items-center justify-between">
           <div>
@@ -191,11 +186,10 @@ export function AppShell({ user, children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                  active
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${active
                     ? "border-[color:rgba(31,99,85,0.3)] bg-[color:rgba(31,99,85,0.11)] text-[var(--primary-strong)]"
                     : "border-transparent text-[var(--ink-soft)] hover:border-[var(--border)] hover:bg-[var(--surface)]"
-                }`}
+                  }`}
               >
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-light)] bg-[var(--surface)]">
                   <Icon className="h-4 w-4" />
@@ -238,36 +232,35 @@ export function AppShell({ user, children }: AppShellProps) {
                 {theme === "dark" ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
               </button>
               <div className="relative">
-              <button
-                type="button"
-                className="flex min-w-44 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-left text-sm transition hover:border-[color:rgba(31,99,85,0.34)]"
-                onClick={() => setMenuOpen((value) => !value)}
-              >
-                <span>
-                  <span className="block font-semibold text-[var(--foreground)]">{user.displayName}</span>
-                  <span className="block text-[0.72rem] uppercase tracking-[0.12em] text-[var(--ink-soft)]">
-                    {user.role}
+                <button
+                  type="button"
+                  className="flex min-w-44 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-left text-sm transition hover:border-[color:rgba(31,99,85,0.34)]"
+                  onClick={() => setMenuOpen((value) => !value)}
+                >
+                  <span>
+                    <span className="block font-semibold text-[var(--foreground)]">{user.displayName}</span>
+                    <span className="block text-[0.72rem] uppercase tracking-[0.12em] text-[var(--ink-soft)]">
+                      {user.role}
+                    </span>
                   </span>
-                </span>
-                <span className={`text-xs text-[var(--ink-soft)] transition-transform ${menuOpen ? "rotate-180" : ""}`}>
-                  ▼
-                </span>
-              </button>
+                  <span className={`text-xs text-[var(--ink-soft)] transition-transform ${menuOpen ? "rotate-180" : ""}`}>
+                    ▼
+                  </span>
+                </button>
 
-              <div
-                className={`absolute right-0 mt-2 w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_30px_-22px_rgba(15,23,42,0.65)] transition ${
-                  menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
-                }`}
-              >
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Sesion activa</p>
-                <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">@{user.username}</p>
-                <form action="/api/auth/logout" method="post" className="mt-3">
-                  <button type="submit" className="action-btn action-btn-danger w-full">
-                    Cerrar sesion
-                  </button>
-                </form>
+                <div
+                  className={`absolute right-0 mt-2 w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_30px_-22px_rgba(15,23,42,0.65)] transition ${menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                    }`}
+                >
+                  <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Sesion activa</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">@{user.username}</p>
+                  <form action="/api/auth/logout" method="post" className="mt-3">
+                    <button type="submit" className="action-btn action-btn-danger w-full">
+                      Cerrar sesion
+                    </button>
+                  </form>
+                </div>
               </div>
-            </div>
             </div>
           </div>
         </header>
@@ -285,11 +278,10 @@ export function AppShell({ user, children }: AppShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[0.67rem] font-medium transition ${
-                  active
+                className={`flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[0.67rem] font-medium transition ${active
                     ? "bg-[color:rgba(31,99,85,0.11)] text-[var(--primary-strong)]"
                     : "text-[var(--ink-soft)] hover:bg-[var(--hover-tint)]"
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 <span className="truncate">{item.label}</span>

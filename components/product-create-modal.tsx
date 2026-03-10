@@ -453,7 +453,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
               />
 
               <div
-                className="wizard-panel relative z-10 flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.35rem] border border-[color:rgba(148,163,184,0.35)] bg-[var(--surface)] shadow-[0_40px_60px_-36px_rgba(15,23,42,0.78)] sm:max-h-[90dvh] sm:rounded-[1.5rem]"
+                className="wizard-panel relative z-10 flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.35rem] border border-[var(--border)] bg-[var(--surface)] shadow-[0_40px_60px_-36px_rgba(15,23,42,0.78)] sm:max-h-[90dvh] sm:rounded-[1.5rem]"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Crear producto"
@@ -508,13 +508,13 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                 >
                   <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
                     {formError ? (
-                      <div className="mb-4 rounded-xl border border-[color:rgba(217,45,32,0.34)] bg-[color:rgba(217,45,32,0.08)] px-3 py-2 text-sm text-[color:#9b2c2c]">
+                      <div className="mb-4 rounded-xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]">
                         {formError}
                       </div>
                     ) : null}
 
                     {stepError ? (
-                      <div className="mb-4 rounded-xl border border-[color:rgba(47,138,119,0.34)] bg-[color:rgba(47,138,119,0.12)] px-3 py-2 text-sm text-[color:#1f6355]">
+                      <div className="mb-4 rounded-xl border border-[color:rgba(47,138,119,0.34)] bg-[color:rgba(47,138,119,0.12)] px-3 py-2 text-sm text-[var(--primary)]">
                         {stepError}
                       </div>
                     ) : null}
@@ -719,7 +719,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
 
               {isScannerOpen ? (
                 <div className="absolute inset-0 z-20 flex items-end justify-center bg-[color:rgba(2,6,23,0.76)] p-3 sm:hidden">
-                  <div className="w-full max-w-md rounded-2xl border border-[color:rgba(148,163,184,0.32)] bg-[var(--surface)] p-3 shadow-[0_30px_60px_-30px_rgba(2,6,23,0.8)]">
+                  <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_30px_60px_-30px_rgba(2,6,23,0.8)]">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-[var(--foreground)]">Escanear codigo de barras</p>
                       <div className="flex items-center gap-2">
@@ -744,7 +744,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                       </div>
                     </div>
 
-                    <div className="mt-3 overflow-hidden rounded-xl border border-[color:rgba(148,163,184,0.32)] bg-[color:#05070c]">
+                    <div className="mt-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[color:#05070c]">
                       <div className="relative">
                         <video
                           ref={scannerVideoRef}
@@ -760,7 +760,7 @@ export function ProductCreateModal({ warehouses, formError }: ProductCreateModal
                     {isScannerBooting ? (
                       <p className="mt-2 text-xs text-[var(--ink-soft)]">Iniciando camara...</p>
                     ) : scannerError ? (
-                      <p className="mt-2 text-xs text-[color:#9b2c2c]">{scannerError}</p>
+                      <p className="mt-2 text-xs text-[var(--danger-text)]">{scannerError}</p>
                     ) : (
                       <p className="mt-2 text-xs text-[var(--ink-soft)]">
                         Alinea el codigo dentro del marco. El SKU se completa automaticamente.

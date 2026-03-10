@@ -129,7 +129,7 @@ export function QrScanner({ onScan, onClose, label = "Escanear codigo" }: QrScan
 
   return createPortal(
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[color:rgba(2,6,23,0.82)] p-3 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-[color:rgba(148,163,184,0.32)] bg-[color:rgba(255,255,255,0.97)] p-4 shadow-[0_30px_60px_-30px_rgba(2,6,23,0.8)]">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_30px_60px_-30px_rgba(2,6,23,0.8)]">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-[var(--foreground)]">{label}</p>
           <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export function QrScanner({ onScan, onClose, label = "Escanear codigo" }: QrScan
           </div>
         </div>
 
-        <div className="mt-3 overflow-hidden rounded-xl border border-[color:rgba(148,163,184,0.32)] bg-[color:#05070c]">
+        <div className="mt-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[color:#05070c]">
           <div className="relative">
             <video ref={videoRef} className="h-64 w-full object-cover" autoPlay muted playsInline />
             <div className="pointer-events-none absolute inset-x-6 top-1/2 h-14 -translate-y-1/2 rounded-lg border-2 border-[color:rgba(47,138,119,0.82)] shadow-[0_0_0_120px_rgba(2,6,23,0.26)]" />
@@ -159,7 +159,7 @@ export function QrScanner({ onScan, onClose, label = "Escanear codigo" }: QrScan
         {booting ? (
           <p className="mt-2 text-xs text-[var(--ink-soft)]">Iniciando camara...</p>
         ) : error ? (
-          <p className="mt-2 text-xs text-[color:#9b2c2c]">{error}</p>
+          <p className="mt-2 text-xs text-[var(--danger-text)]">{error}</p>
         ) : (
           <p className="mt-2 text-xs text-[var(--ink-soft)]">
             Alinea el codigo QR dentro del marco.
