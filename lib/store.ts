@@ -5,6 +5,8 @@ import type {
   Product,
   ProductWithStock,
   Role,
+  Sale,
+  SaleLineItem,
   Session,
   User,
   Warehouse,
@@ -25,15 +27,24 @@ type MovementInput = {
   actor: Session;
 };
 
+type SaleInput = {
+  warehouseId: string;
+  items: Array<{ sku: number; quantity: number }>;
+  cashReceived: number;
+  actor: Session;
+};
+
 type Store = {
   users: User[];
   products: Product[];
   warehouses: Warehouse[];
   inventory: Map<InventoryKey, number>;
   movements: Movement[];
+  sales: Sale[];
   nextMovementNumber: number;
   nextWarehouseNumber: number;
   nextUserNumber: number;
+  nextSaleNumber: number;
 };
 
 declare global {
@@ -109,9 +120,11 @@ function createInitialStore(): Store {
       [inventoryKey("alm-2", 1002), 32],
     ]),
     movements: [],
+    sales: [],
     nextMovementNumber: 1,
     nextWarehouseNumber: 3,
     nextUserNumber: 3,
+    nextSaleNumber: 1,
   };
 }
 
@@ -520,6 +533,113 @@ export function createMovement(input: MovementInput): Movement {
   getStore().movements.push(movement);
 
   return movement;
+}
+
+export function listProductsWithStockByWarehouse(
+  warehouseId: string,
+): Array<Product & { qty: number }> {
+  findWarehouseById(warehouseId);
+
+  return getStore()
+    .products.map((product) => ({
+      ...product,
+      qty: getStock(warehouseId, product.sku),
+    }))
+    .filter((item) => item.qty > 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function createSale(input: SaleInput): Sale {
+  const warehouse = findWarehouseById(input.warehouseId);
+
+  if (!input.items.length) {
+    throw new Error("El carrito esta vacio.");
+  }
+
+  const lineItems: SaleLineItem[] = [];
+
+  for (const item of input.items) {
+    const product = findProductBySku(item.sku);
+    const qty = Math.trunc(item.quantity);
+
+    if (!Number.isInteger(qty) || qty <= 0) {
+      throw new Error(`Cantidad invalida para ${product.name}.`);
+    }
+
+    const available = getStock(warehouse.id, product.sku);
+
+    if (available < qty) {
+      throw new Error(
+        `Stock insuficiente para ${product.name}. Disponible: ${available}, solicitado: ${qty}.`,
+      );
+    }
+
+    lineItems.push({
+      sku: product.sku,
+      productName: product.name,
+      price: product.price,
+      quantity: qty,
+      subtotal: Number((product.price * qty).toFixed(2)),
+    });
+  }
+
+  const total = Number(lineItems.reduce((acc, item) => acc + item.subtotal, 0).toFixed(2));
+
+  if (!Number.isFinite(input.cashReceived) || input.cashReceived < total) {
+    throw new Error("El monto recibido es insuficiente.");
+  }
+
+  const saleId = `vta-${String(getStore().nextSaleNumber).padStart(5, "0")}`;
+  getStore().nextSaleNumber += 1;
+
+  for (const item of lineItems) {
+    createMovement({
+      type: "salida",
+      sku: item.sku,
+      quantity: item.quantity,
+      sourceWarehouseId: warehouse.id,
+      note: `Venta POS ${saleId}`,
+      actor: input.actor,
+    });
+  }
+
+  const sale: Sale = {
+    id: saleId,
+    warehouseId: warehouse.id,
+    warehouseName: warehouse.name,
+    items: lineItems,
+    itemCount: lineItems.reduce((acc, item) => acc + item.quantity, 0),
+    total,
+    cashReceived: input.cashReceived,
+    change: Number((input.cashReceived - total).toFixed(2)),
+    performedBy: input.actor.username,
+    performedByName: input.actor.displayName,
+    createdAt: nowIso(),
+  };
+
+  getStore().sales.push(sale);
+
+  return sale;
+}
+
+export function listSales(limit?: number): Sale[] {
+  const data = [...getStore().sales].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  if (!limit) {
+    return data;
+  }
+
+  return data.slice(0, limit);
+}
+
+export function findSaleById(id: string): Sale {
+  const sale = getStore().sales.find((item) => item.id === id);
+
+  if (!sale) {
+    throw new Error("La venta no existe.");
+  }
+
+  return sale;
 }
 
 export function getDashboardMetrics(): DashboardMetrics {
