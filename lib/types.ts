@@ -69,6 +69,28 @@ export type WarehouseStockSummary = Warehouse & {
   totalProducts: number;
 };
 
+export type SaleLineItem = {
+  sku: number;
+  productName: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+};
+
+export type Sale = {
+  id: string;
+  warehouseId: string;
+  warehouseName: string;
+  items: SaleLineItem[];
+  itemCount: number;
+  total: number;
+  cashReceived: number;
+  change: number;
+  performedBy: string;
+  performedByName: string;
+  createdAt: string;
+};
+
 export type DashboardMetrics = {
   totalProducts: number;
   totalWarehouses: number;
