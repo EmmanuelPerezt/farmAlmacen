@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { SectionCard } from "@/components/section-card";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { getDashboardMetrics } from "@/lib/db";
 
 const movementLabels = {
@@ -69,6 +69,7 @@ export default async function DashboardPage() {
           title="Ultimos movimientos"
           description="Registro cronologico con usuario responsable y almacenes involucrados"
         >
+
           {metrics.latestMovements.length === 0 ? (
             <div className="panel-soft rounded-2xl border-dashed p-6 text-sm text-[var(--ink-soft)]">
               Aun no hay movimientos registrados. Puedes comenzar desde la pestaña de
@@ -137,35 +138,93 @@ export default async function DashboardPage() {
           )}
         </SectionCard>
 
-        <SectionCard
-          title="Alerta de stock"
-          description="Productos con inventario total en umbral bajo (<= 10)"
-        >
-          {metrics.lowStockProducts.length === 0 ? (
-            <p className="rounded-2xl border border-[color:rgba(15,157,114,0.34)] bg-[color:rgba(15,157,114,0.1)] px-4 py-3 text-sm text-[var(--success)]">
-              Sin alertas por ahora. El nivel de inventario luce estable.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {metrics.lowStockProducts.map((product) => (
-                <li
-                  key={product.sku}
-                  className="rounded-2xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="min-w-0 break-words text-sm font-semibold leading-snug text-[var(--danger)]">
-                      {product.name}
-                    </p>
-                    <span className="shrink-0 rounded-full border border-[color:rgba(217,45,32,0.3)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--danger-text)]">
-                      {product.totalQty}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-[var(--danger-text)]">SKU {product.sku}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
+        <div className="space-y-6">
+          <SectionCard
+            title="Alerta de caducidad"
+            description="Productos con fecha de caducidad proxima (<= 30 dias)"
+          >
+            {metrics.expiringProducts.length === 0 ? (
+              <p className="rounded-2xl border border-[color:rgba(15,157,114,0.34)] bg-[color:rgba(15,157,114,0.1)] px-4 py-3 text-sm text-[var(--success)]">
+                Sin alertas por ahora. Ningun producto esta proximo a caducar.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {metrics.expiringProducts.map((product) => {
+                  const isExpired = product.daysUntilExpiration <= 0;
+
+                  return (
+                    <li
+                      key={product.sku}
+                      className={`rounded-2xl border px-3 py-2 ${
+                        isExpired
+                          ? "border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)]"
+                          : "border-[color:rgba(245,158,11,0.28)] bg-[color:rgba(245,158,11,0.08)]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className={`min-w-0 break-words text-sm font-semibold leading-snug ${
+                            isExpired ? "text-[var(--danger)]" : "text-[color:rgb(180,120,10)]"
+                          }`}
+                        >
+                          {product.name}
+                        </p>
+                        <span
+                          className={`shrink-0 rounded-full border bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold ${
+                            isExpired
+                              ? "border-[color:rgba(217,45,32,0.3)] text-[var(--danger-text)]"
+                              : "border-[color:rgba(245,158,11,0.3)] text-[color:rgb(180,120,10)]"
+                          }`}
+                        >
+                          {isExpired
+                            ? `Vencido (${Math.abs(product.daysUntilExpiration)}d)`
+                            : `${product.daysUntilExpiration}d`}
+                        </span>
+                      </div>
+                      <p
+                        className={`mt-1 text-xs ${
+                          isExpired ? "text-[var(--danger-text)]" : "text-[color:rgb(160,110,10)]"
+                        }`}
+                      >
+                        SKU {product.sku} — Caduca: {formatDate(product.expirationDate)}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title="Alerta de stock"
+            description="Productos con inventario total en umbral bajo (<= 10)"
+          >
+            {metrics.lowStockProducts.length === 0 ? (
+              <p className="rounded-2xl border border-[color:rgba(15,157,114,0.34)] bg-[color:rgba(15,157,114,0.1)] px-4 py-3 text-sm text-[var(--success)]">
+                Sin alertas por ahora. El nivel de inventario luce estable.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {metrics.lowStockProducts.map((product) => (
+                  <li
+                    key={product.sku}
+                    className="rounded-2xl border border-[color:rgba(217,45,32,0.28)] bg-[var(--danger-bg)] px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 break-words text-sm font-semibold leading-snug text-[var(--danger)]">
+                        {product.name}
+                      </p>
+                      <span className="shrink-0 rounded-full border border-[color:rgba(217,45,32,0.3)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--danger-text)]">
+                        {product.totalQty}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--danger-text)]">SKU {product.sku}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
       </section>
 
       <section className="panel app-enter app-enter-delay-2 p-5">

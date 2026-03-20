@@ -19,13 +19,14 @@ model User {
 }
 
 model Product {
-  sku       Int         @id
-  name      String
-  price     Float
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  inventory Inventory[]
-  movements Movement[]
+  sku            Int         @id
+  name           String
+  price          Float
+  expirationDate DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  inventory      Inventory[]
+  movements      Movement[]
 }
 
 model Warehouse {

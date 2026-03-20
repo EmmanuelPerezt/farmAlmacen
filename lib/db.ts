@@ -33,6 +33,7 @@ type RawProduct = {
   sku: number;
   name: string;
   price: number;
+  expirationDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -93,6 +94,7 @@ function toProduct(raw: RawProduct): Product {
     sku: raw.sku,
     name: raw.name,
     price: raw.price,
+    expirationDate: raw.expirationDate?.toISOString() ?? null,
     createdAt: raw.createdAt.toISOString(),
     updatedAt: raw.updatedAt.toISOString(),
   };
@@ -376,6 +378,7 @@ export async function createProduct(input: {
   sku: number;
   name: string;
   price: number;
+  expirationDate?: string;
   initialQty?: number;
   initialWarehouseId?: string;
 }): Promise<Product> {
@@ -413,6 +416,7 @@ export async function createProduct(input: {
           sku: input.sku,
           name,
           price: Number(input.price.toFixed(2)),
+          expirationDate: input.expirationDate ? new Date(input.expirationDate) : null,
         },
       });
 
@@ -450,6 +454,7 @@ export async function updateProduct(input: {
   sku: number;
   name: string;
   price: number;
+  expirationDate?: string | null;
 }): Promise<Product> {
   const name = input.name.trim();
 
@@ -466,9 +471,18 @@ export async function updateProduct(input: {
     throw new Error("El producto seleccionado no existe.");
   }
 
+  const data: Prisma.ProductUpdateInput = {
+    name,
+    price: Number(input.price.toFixed(2)),
+  };
+
+  if (input.expirationDate !== undefined) {
+    data.expirationDate = input.expirationDate ? new Date(input.expirationDate) : null;
+  }
+
   const product = await prisma.product.update({
     where: { sku: input.sku },
-    data: { name, price: Number(input.price.toFixed(2)) },
+    data,
   });
   return toProduct(product);
 }
@@ -740,6 +754,8 @@ export async function findSaleById(id: string): Promise<Sale> {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
+const EXPIRATION_THRESHOLD_DAYS = 30;
+
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -768,12 +784,29 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     .slice(0, 6)
     .map((p) => ({ sku: p.sku, name: p.name, totalQty: p.totalQty }));
 
+  const now = new Date();
+  const thresholdDate = new Date(now.getTime() + EXPIRATION_THRESHOLD_DAYS * 86_400_000);
+
+  const expiringProducts = products
+    .filter((p) => p.expirationDate && p.expirationDate <= thresholdDate)
+    .sort((a, b) => a.expirationDate!.getTime() - b.expirationDate!.getTime())
+    .slice(0, 6)
+    .map((p) => ({
+      sku: p.sku,
+      name: p.name,
+      expirationDate: p.expirationDate!.toISOString(),
+      daysUntilExpiration: Math.ceil(
+        (p.expirationDate!.getTime() - now.getTime()) / 86_400_000,
+      ),
+    }));
+
   return {
     totalProducts: products.length,
     totalWarehouses: warehouses.length,
     totalStock,
     movementsToday,
     lowStockProducts,
+    expiringProducts,
     latestMovements: latestMovements.map(toMovement),
   };
 }

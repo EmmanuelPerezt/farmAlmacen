@@ -86,6 +86,7 @@ function createInitialStore(): Store {
         sku: 1001,
         name: "Paracetamol 500mg",
         price: 4.25,
+        expirationDate: null,
         createdAt: timestamp,
         updatedAt: timestamp,
       },
@@ -93,6 +94,7 @@ function createInitialStore(): Store {
         sku: 1002,
         name: "Ibuprofeno 400mg",
         price: 5.5,
+        expirationDate: null,
         createdAt: timestamp,
         updatedAt: timestamp,
       },
@@ -396,6 +398,7 @@ export function createProduct(input: {
     sku: input.sku,
     name,
     price: Number(input.price.toFixed(2)),
+    expirationDate: null,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -670,6 +673,7 @@ export function getDashboardMetrics(): DashboardMetrics {
     totalStock,
     movementsToday,
     lowStockProducts,
+    expiringProducts: [],
     latestMovements: movements.slice(0, 8),
   };
 }
