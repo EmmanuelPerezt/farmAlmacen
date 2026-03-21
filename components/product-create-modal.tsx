@@ -16,6 +16,7 @@ type ProductWizardForm = {
   sku: string;
   name: string;
   price: string;
+  expirationDate: string;
   initialQty: string;
   initialWarehouseId: string;
 };
@@ -27,6 +28,7 @@ function getDefaultForm(): ProductWizardForm {
     sku: "",
     name: "",
     price: "",
+    expirationDate: "",
     initialQty: "0",
     initialWarehouseId: "",
   };
@@ -419,6 +421,7 @@ export function ProductCreateModal({ warehouses }: ProductCreateModalProps) {
           sku: skuValue,
           name: form.name,
           price: priceValue,
+          expirationDate: form.expirationDate || undefined,
           initialQty: initialQtyValue,
           initialWarehouseId: form.initialWarehouseId || undefined,
         }),
@@ -616,6 +619,21 @@ export function ProductCreateModal({ warehouses }: ProductCreateModalProps) {
                             placeholder="Amoxicilina 500mg"
                           />
                         </label>
+
+                        <label className="block sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+                            Fecha de caducidad
+                          </span>
+                          <input
+                            value={form.expirationDate}
+                            onChange={(event) => updateForm("expirationDate", event.target.value)}
+                            type="date"
+                            className="form-input"
+                          />
+                          <p className="mt-1 text-[11px] text-[var(--ink-soft)]">
+                            Opcional. Deja en blanco si no aplica.
+                          </p>
+                        </label>
                       </section>
                     ) : null}
 
@@ -679,6 +697,12 @@ export function ProductCreateModal({ warehouses }: ProductCreateModalProps) {
                             <p className="text-[var(--ink-soft)] sm:col-span-2">
                               Nombre:{" "}
                               <span className="font-semibold text-[var(--foreground)]">{form.name || "-"}</span>
+                            </p>
+                            <p className="text-[var(--ink-soft)]">
+                              Caducidad:{" "}
+                              <span className="font-semibold text-[var(--foreground)]">
+                                {form.expirationDate || "Sin fecha"}
+                              </span>
                             </p>
                             <p className="text-[var(--ink-soft)]">
                               Stock inicial:{" "}

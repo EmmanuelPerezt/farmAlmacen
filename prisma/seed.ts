@@ -21,17 +21,26 @@ const users = [
   },
 ];
 
-const products = [
-  { sku: 1001, name: "Paracetamol 500mg", price: 4.25 },
-  { sku: 1002, name: "Ibuprofeno 400mg", price: 5.5 },
-  { sku: 1003, name: "Amoxicilina 500mg", price: 12.0 },
-  { sku: 1004, name: "Omeprazol 20mg", price: 8.75 },
-  { sku: 1005, name: "Metformina 500mg", price: 6.3 },
-  { sku: 1006, name: "Atorvastatina 20mg", price: 15.9 },
+function daysFromNow(days: number): Date {
+  return new Date(Date.now() + days * 86_400_000);
+}
+
+const products: Array<{
+  sku: number;
+  name: string;
+  price: number;
+  expirationDate?: Date;
+}> = [
+  { sku: 1001, name: "Paracetamol 500mg", price: 4.25, expirationDate: daysFromNow(180) },
+  { sku: 1002, name: "Ibuprofeno 400mg", price: 5.5, expirationDate: daysFromNow(15) },
+  { sku: 1003, name: "Amoxicilina 500mg", price: 12.0, expirationDate: daysFromNow(-5) },
+  { sku: 1004, name: "Omeprazol 20mg", price: 8.75, expirationDate: daysFromNow(25) },
+  { sku: 1005, name: "Metformina 500mg", price: 6.3, expirationDate: daysFromNow(365) },
+  { sku: 1006, name: "Atorvastatina 20mg", price: 15.9, expirationDate: daysFromNow(8) },
   { sku: 1007, name: "Losartan 50mg", price: 7.2 },
-  { sku: 1008, name: "Amlodipino 5mg", price: 9.5 },
-  { sku: 1009, name: "Loratadina 10mg", price: 3.8 },
-  { sku: 1010, name: "Diclofenaco 50mg", price: 4.6 },
+  { sku: 1008, name: "Amlodipino 5mg", price: 9.5, expirationDate: daysFromNow(90) },
+  { sku: 1009, name: "Loratadina 10mg", price: 3.8, expirationDate: daysFromNow(270) },
+  { sku: 1010, name: "Diclofenaco 50mg", price: 4.6, expirationDate: daysFromNow(3) },
 ];
 
 const warehouses = [
@@ -83,8 +92,15 @@ async function main() {
   for (const product of products) {
     await prisma.product.upsert({
       where: { sku: product.sku },
-      update: {},
-      create: { ...product, createdAt: SEED_DATE, updatedAt: SEED_DATE },
+      update: { expirationDate: product.expirationDate ?? null },
+      create: {
+        sku: product.sku,
+        name: product.name,
+        price: product.price,
+        expirationDate: product.expirationDate ?? null,
+        createdAt: SEED_DATE,
+        updatedAt: SEED_DATE,
+      },
     });
   }
 

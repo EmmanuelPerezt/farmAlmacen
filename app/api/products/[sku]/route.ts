@@ -18,13 +18,19 @@ export async function PUT(
 
   const { sku: skuParam } = await params;
   const sku = Number(skuParam);
-  const body = await request.json() as { name?: unknown; price?: unknown };
+  const body = await request.json() as { name?: unknown; price?: unknown; expirationDate?: unknown };
 
   try {
     const product = await updateProduct({
       sku,
       name: String(body.name ?? ""),
       price: Number(body.price),
+      expirationDate:
+        body.expirationDate === null
+          ? null
+          : typeof body.expirationDate === "string" && body.expirationDate.trim()
+            ? body.expirationDate.trim()
+            : undefined,
     });
     return NextResponse.json({ product });
   } catch (error) {

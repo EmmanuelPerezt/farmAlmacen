@@ -1,6 +1,7 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 
 import type {
+  CashRegisterSession,
   DashboardMetrics,
   Movement,
   MovementType,
@@ -9,6 +10,7 @@ import type {
   Role,
   Sale,
   SaleLineItem,
+  SaleType,
   Session,
   User,
   Warehouse,
@@ -33,6 +35,7 @@ type RawProduct = {
   sku: number;
   name: string;
   price: number;
+  expirationDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -83,8 +86,23 @@ type RawSale = {
   total: number;
   cashReceived: number;
   change: number;
+  saleType: string;
+  authorizedBy: string | null;
+  authorizedByName: string | null;
+  cashRegisterSessionId: string | null;
   performedBy: string;
   performedByName: string;
+  createdAt: Date;
+};
+
+type RawCashRegisterSession = {
+  id: string;
+  warehouseId: string;
+  warehouseName: string;
+  openingBalance: number;
+  closedAt: Date | null;
+  openedBy: string;
+  openedByName: string;
   createdAt: Date;
 };
 
@@ -93,6 +111,7 @@ function toProduct(raw: RawProduct): Product {
     sku: raw.sku,
     name: raw.name,
     price: raw.price,
+    expirationDate: raw.expirationDate?.toISOString() ?? null,
     createdAt: raw.createdAt.toISOString(),
     updatedAt: raw.updatedAt.toISOString(),
   };
@@ -151,9 +170,45 @@ function parseSale(raw: RawSale): Sale {
     total: raw.total,
     cashReceived: raw.cashReceived,
     change: raw.change,
+    saleType: (raw.saleType as SaleType) ?? "normal",
+    authorizedBy: raw.authorizedBy,
+    authorizedByName: raw.authorizedByName,
+    cashRegisterSessionId: raw.cashRegisterSessionId,
     performedBy: raw.performedBy,
     performedByName: raw.performedByName,
     createdAt: raw.createdAt.toISOString(),
+  };
+}
+
+async function parseCashRegisterSession(
+  raw: RawCashRegisterSession,
+): Promise<CashRegisterSession> {
+  const sales = await prisma.sale.findMany({
+    where: { cashRegisterSessionId: raw.id },
+  });
+
+  const normalSales = sales.filter((s) => s.saleType === "normal" || !s.saleType);
+  const cortesiaSales = sales.filter((s) => s.saleType === "cortesia");
+
+  const totalSales = Number(
+    normalSales.reduce((acc, s) => acc + s.total, 0).toFixed(2),
+  );
+  const totalCortesia = Number(
+    cortesiaSales.reduce((acc, s) => acc + s.total, 0).toFixed(2),
+  );
+
+  return {
+    id: raw.id,
+    warehouseId: raw.warehouseId,
+    warehouseName: raw.warehouseName,
+    openingBalance: raw.openingBalance,
+    closedAt: raw.closedAt?.toISOString() ?? null,
+    openedBy: raw.openedBy,
+    openedByName: raw.openedByName,
+    createdAt: raw.createdAt.toISOString(),
+    totalSales,
+    totalCortesia,
+    expectedBalance: Number((raw.openingBalance + totalSales).toFixed(2)),
   };
 }
 
@@ -179,6 +234,16 @@ type SaleInput = {
   warehouseId: string;
   items: Array<{ sku: number; quantity: number }>;
   cashReceived: number;
+  saleType?: SaleType;
+  authorizedBy?: string;
+  authorizedByName?: string;
+  cashRegisterSessionId?: string;
+  actor: Session;
+};
+
+type CashRegisterSessionInput = {
+  warehouseId: string;
+  openingBalance: number;
   actor: Session;
 };
 
@@ -376,6 +441,7 @@ export async function createProduct(input: {
   sku: number;
   name: string;
   price: number;
+  expirationDate?: string;
   initialQty?: number;
   initialWarehouseId?: string;
 }): Promise<Product> {
@@ -413,6 +479,7 @@ export async function createProduct(input: {
           sku: input.sku,
           name,
           price: Number(input.price.toFixed(2)),
+          expirationDate: input.expirationDate ? new Date(input.expirationDate) : null,
         },
       });
 
@@ -450,6 +517,7 @@ export async function updateProduct(input: {
   sku: number;
   name: string;
   price: number;
+  expirationDate?: string | null;
 }): Promise<Product> {
   const name = input.name.trim();
 
@@ -466,9 +534,18 @@ export async function updateProduct(input: {
     throw new Error("El producto seleccionado no existe.");
   }
 
+  const data: Prisma.ProductUpdateInput = {
+    name,
+    price: Number(input.price.toFixed(2)),
+  };
+
+  if (input.expirationDate !== undefined) {
+    data.expirationDate = input.expirationDate ? new Date(input.expirationDate) : null;
+  }
+
   const product = await prisma.product.update({
     where: { sku: input.sku },
-    data: { name, price: Number(input.price.toFixed(2)) },
+    data,
   });
   return toProduct(product);
 }
@@ -641,9 +718,68 @@ export async function listProductsWithStockByWarehouse(
   }));
 }
 
+// ─── Cash Register Sessions ───────────────────────────────────────────────────
+
+export async function createCashRegisterSession(
+  input: CashRegisterSessionInput,
+): Promise<CashRegisterSession> {
+  const warehouse = await prisma.warehouse.findUnique({ where: { id: input.warehouseId } });
+  if (!warehouse) {
+    throw new Error("El almacen seleccionado no existe.");
+  }
+
+  if (!Number.isFinite(input.openingBalance) || input.openingBalance < 0) {
+    throw new Error("El fondo inicial debe ser un numero mayor o igual a 0.");
+  }
+
+  const session = await prisma.cashRegisterSession.create({
+    data: {
+      warehouseId: warehouse.id,
+      warehouseName: warehouse.name,
+      openingBalance: Number(input.openingBalance.toFixed(2)),
+      openedBy: input.actor.username,
+      openedByName: input.actor.displayName,
+    },
+  });
+
+  return parseCashRegisterSession(session);
+}
+
+export async function findCashRegisterSession(id: string): Promise<CashRegisterSession> {
+  const session = await prisma.cashRegisterSession.findUnique({ where: { id } });
+  if (!session) {
+    throw new Error("La sesion de caja no existe.");
+  }
+  return parseCashRegisterSession(session);
+}
+
+export async function closeCashRegisterSession(id: string): Promise<CashRegisterSession> {
+  const session = await prisma.cashRegisterSession.findUnique({ where: { id } });
+  if (!session) {
+    throw new Error("La sesion de caja no existe.");
+  }
+
+  const updated = await prisma.cashRegisterSession.update({
+    where: { id },
+    data: { closedAt: new Date() },
+  });
+  return parseCashRegisterSession(updated);
+}
+
+export async function listAdminUsers(): Promise<Array<Omit<User, "password">>> {
+  const users = await prisma.user.findMany({
+    where: { role: "admin" },
+    orderBy: { displayName: "asc" },
+  });
+  return users.map((u) => toPublicUser(toUser(u)));
+}
+
 // ─── Sales ────────────────────────────────────────────────────────────────────
 
 export async function createSale(input: SaleInput): Promise<Sale> {
+  const saleType = input.saleType ?? "normal";
+  const isCortesia = saleType === "cortesia";
+
   return prisma.$transaction(async (tx) => {
     const warehouse = await tx.warehouse.findUnique({ where: { id: input.warehouseId } });
     if (!warehouse) {
@@ -652,6 +788,10 @@ export async function createSale(input: SaleInput): Promise<Sale> {
 
     if (!input.items.length) {
       throw new Error("El carrito esta vacio.");
+    }
+
+    if (isCortesia && !input.authorizedBy) {
+      throw new Error("Las salidas sin pago requieren autorizacion de un administrador.");
     }
 
     const lineItems: SaleLineItem[] = [];
@@ -689,9 +829,15 @@ export async function createSale(input: SaleInput): Promise<Sale> {
 
     const total = Number(lineItems.reduce((acc, item) => acc + item.subtotal, 0).toFixed(2));
 
-    if (!Number.isFinite(input.cashReceived) || input.cashReceived < total) {
-      throw new Error("El monto recibido es insuficiente.");
+    if (!isCortesia) {
+      if (!Number.isFinite(input.cashReceived) || input.cashReceived < total) {
+        throw new Error("El monto recibido es insuficiente.");
+      }
     }
+
+    const movementNote = isCortesia
+      ? `Salida sin pago - Autorizado por: ${input.authorizedByName ?? input.authorizedBy}`
+      : "Venta POS";
 
     for (const item of lineItems) {
       await createMovementTx(tx, {
@@ -699,10 +845,13 @@ export async function createSale(input: SaleInput): Promise<Sale> {
         sku: item.sku,
         quantity: item.quantity,
         sourceWarehouseId: warehouse.id,
-        note: "Venta POS",
+        note: movementNote,
         actor: input.actor,
       });
     }
+
+    const cashReceived = isCortesia ? 0 : input.cashReceived;
+    const change = isCortesia ? 0 : Number((input.cashReceived - total).toFixed(2));
 
     const sale = await tx.sale.create({
       data: {
@@ -711,8 +860,12 @@ export async function createSale(input: SaleInput): Promise<Sale> {
         items: JSON.stringify(lineItems),
         itemCount: lineItems.reduce((acc, item) => acc + item.quantity, 0),
         total,
-        cashReceived: input.cashReceived,
-        change: Number((input.cashReceived - total).toFixed(2)),
+        cashReceived,
+        change,
+        saleType,
+        authorizedBy: input.authorizedBy ?? null,
+        authorizedByName: input.authorizedByName ?? null,
+        cashRegisterSessionId: input.cashRegisterSessionId ?? null,
         performedBy: input.actor.username,
         performedByName: input.actor.displayName,
       },
@@ -739,6 +892,8 @@ export async function findSaleById(id: string): Promise<Sale> {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+
+const EXPIRATION_THRESHOLD_DAYS = 30;
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const startOfDay = new Date();
@@ -768,12 +923,29 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     .slice(0, 6)
     .map((p) => ({ sku: p.sku, name: p.name, totalQty: p.totalQty }));
 
+  const now = new Date();
+  const thresholdDate = new Date(now.getTime() + EXPIRATION_THRESHOLD_DAYS * 86_400_000);
+
+  const expiringProducts = products
+    .filter((p) => p.expirationDate && p.expirationDate <= thresholdDate)
+    .sort((a, b) => a.expirationDate!.getTime() - b.expirationDate!.getTime())
+    .slice(0, 6)
+    .map((p) => ({
+      sku: p.sku,
+      name: p.name,
+      expirationDate: p.expirationDate!.toISOString(),
+      daysUntilExpiration: Math.ceil(
+        (p.expirationDate!.getTime() - now.getTime()) / 86_400_000,
+      ),
+    }));
+
   return {
     totalProducts: products.length,
     totalWarehouses: warehouses.length,
     totalStock,
     movementsToday,
     lowStockProducts,
+    expiringProducts,
     latestMovements: latestMovements.map(toMovement),
   };
 }

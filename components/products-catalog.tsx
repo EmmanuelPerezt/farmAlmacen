@@ -17,10 +17,16 @@ type ProductEditPanelProps = {
   onClose: () => void;
 };
 
+function toDateInputValue(iso: string | null): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
 function ProductEditPanel({ product, onClose }: ProductEditPanelProps) {
   const router = useRouter();
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(String(product.price));
+  const [expirationDate, setExpirationDate] = useState(toDateInputValue(product.expirationDate));
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -35,7 +41,11 @@ function ProductEditPanel({ product, onClose }: ProductEditPanelProps) {
       const res = await fetch(`/api/products/${product.sku}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, price: Number(price) }),
+        body: JSON.stringify({
+          name,
+          price: Number(price),
+          expirationDate: expirationDate || null,
+        }),
       });
 
       const data = await res.json() as { error?: string };
@@ -100,6 +110,16 @@ function ProductEditPanel({ product, onClose }: ProductEditPanelProps) {
           onChange={(e) => setPrice(e.target.value)}
           className="form-input"
         />
+        <label className="block sm:col-span-2">
+          <span className="mb-1 block text-xs text-[var(--ink-soft)]">Fecha de caducidad</span>
+          <input
+            name="expirationDate"
+            type="date"
+            value={expirationDate}
+            onChange={(e) => setExpirationDate(e.target.value)}
+            className="form-input"
+          />
+        </label>
         {updateError ? (
           <p className="text-xs text-[var(--danger-text)] sm:col-span-2">{updateError}</p>
         ) : null}
@@ -178,6 +198,38 @@ function toPercentage(value: number, max: number): string {
   }
 
   return `${Math.max(6, Math.round((value / max) * 100))}%`;
+}
+
+function getDaysUntilExpiration(expirationDate: string): number {
+  return Math.ceil(
+    (new Date(expirationDate).getTime() - Date.now()) / 86_400_000,
+  );
+}
+
+function ExpirationChip({ expirationDate }: { expirationDate: string }) {
+  const [days] = useState(() => getDaysUntilExpiration(expirationDate));
+
+  if (days <= 0) {
+    return (
+      <span className="rounded-full border border-[color:rgba(217,45,32,0.26)] bg-[color:rgba(217,45,32,0.1)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--danger-text)]">
+        Vencido
+      </span>
+    );
+  }
+
+  if (days <= 30) {
+    return (
+      <span className="rounded-full border border-[color:rgba(245,158,11,0.28)] bg-[color:rgba(245,158,11,0.12)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--ink-muted)]">
+        Caduca en {days}d
+      </span>
+    );
+  }
+
+  return (
+    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--ink-soft)]">
+      Cad. {expirationDate.slice(0, 10)}
+    </span>
+  );
 }
 
 export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
@@ -262,6 +314,9 @@ export function ProductsCatalog({ products, isAdmin }: ProductsCatalogProps) {
                         >
                           {stockMeta.label}
                         </span>
+                        {product.expirationDate ? (
+                          <ExpirationChip expirationDate={product.expirationDate} />
+                        ) : null}
                       </div>
                     </div>
 

@@ -27,6 +27,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     sku?: unknown;
     name?: unknown;
     price?: unknown;
+    expirationDate?: unknown;
     initialQty?: unknown;
     initialWarehouseId?: unknown;
   };
@@ -36,6 +37,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sku: Number(body.sku),
       name: String(body.name ?? ""),
       price: Number(body.price),
+      expirationDate:
+        typeof body.expirationDate === "string" && body.expirationDate.trim()
+          ? body.expirationDate.trim()
+          : undefined,
       initialQty: body.initialQty !== undefined ? Number(body.initialQty) : 0,
       initialWarehouseId:
         typeof body.initialWarehouseId === "string" && body.initialWarehouseId.trim()

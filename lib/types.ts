@@ -19,6 +19,7 @@ export type Product = {
   sku: number;
   name: string;
   price: number;
+  expirationDate: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -77,6 +78,8 @@ export type SaleLineItem = {
   subtotal: number;
 };
 
+export type SaleType = "normal" | "cortesia";
+
 export type Sale = {
   id: string;
   warehouseId: string;
@@ -86,9 +89,27 @@ export type Sale = {
   total: number;
   cashReceived: number;
   change: number;
+  saleType: SaleType;
+  authorizedBy: string | null;
+  authorizedByName: string | null;
+  cashRegisterSessionId: string | null;
   performedBy: string;
   performedByName: string;
   createdAt: string;
+};
+
+export type CashRegisterSession = {
+  id: string;
+  warehouseId: string;
+  warehouseName: string;
+  openingBalance: number;
+  closedAt: string | null;
+  openedBy: string;
+  openedByName: string;
+  createdAt: string;
+  totalSales: number;
+  totalCortesia: number;
+  expectedBalance: number;
 };
 
 export type DashboardMetrics = {
@@ -100,6 +121,12 @@ export type DashboardMetrics = {
     sku: number;
     name: string;
     totalQty: number;
+  }>;
+  expiringProducts: Array<{
+    sku: number;
+    name: string;
+    expirationDate: string;
+    daysUntilExpiration: number;
   }>;
   latestMovements: Movement[];
 };

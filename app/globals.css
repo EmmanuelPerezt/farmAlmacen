@@ -273,6 +273,12 @@ h4 {
 }
 
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
   body,
   body::before {
     background: none !important;
@@ -286,12 +292,94 @@ h4 {
   .pos-receipt-print {
     display: block !important;
     width: 80mm;
-    margin: 0 auto;
-    font-size: 12px;
-    font-family: var(--font-brand-mono), monospace;
+    max-width: 80mm;
+    margin: 0;
+    padding: 0;
+    font-size: 11px;
+    font-family: "Courier New", Courier, monospace;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Remove screen-only decorations */
+  .receipt-screen {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  .receipt-header {
+    background: none !important;
+    border-bottom: 1px dashed #000 !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .receipt-brand {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    letter-spacing: 0.2em !important;
+    color: #000 !important;
+  }
+
+  .receipt-warehouse {
+    font-size: 12px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  .receipt-date,
+  .receipt-folio {
+    font-size: 10px !important;
+    color: #444 !important;
+  }
+
+  .receipt-section-label {
+    font-size: 10px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  .receipt-item {
+    margin-bottom: 4px !important;
+  }
+
+  .receipt-item-subtotal {
+    font-weight: bold !important;
+  }
+
+  .receipt-totals {
+    border-top: 1px dashed #000 !important;
+  }
+
+  .receipt-total {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+    border-top: 1px solid #000 !important;
+  }
+
+  .receipt-footer {
+    border-top: 1px dashed #000 !important;
+    font-size: 10px !important;
+    color: #444 !important;
+    text-align: center !important;
+  }
+
+  /* Hide inline rounded bg on change */
+  .receipt-totals .rounded-lg {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
   }
 
   .no-print {
     display: none !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 4mm 2mm;
   }
 }
