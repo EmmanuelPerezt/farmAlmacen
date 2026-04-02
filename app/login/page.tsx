@@ -1,81 +1,88 @@
 import { redirect } from "next/navigation";
-
-import { NoticeBanner } from "@/components/notice-banner";
 import { getSessionFromCookies } from "@/lib/auth";
 import { readSearchParam } from "@/lib/query";
 
 type LoginPageProps = {
-  searchParams?: Promise<{
-    error?: string | string[];
-  }>;
+  searchParams?: Promise<{ error?: string | string[] }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getSessionFromCookies();
+  if (session) redirect("/mesas");
 
-  if (session) {
-    redirect("/dashboard");
-  }
-
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const error = readSearchParam(resolvedSearchParams?.error);
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const error = readSearchParam(resolvedParams?.error);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(31,99,85,0.16),transparent_34%),radial-gradient(circle_at_88%_14%,rgba(47,138,119,0.16),transparent_35%),linear-gradient(140deg,var(--background)_0%,var(--paper)_55%,var(--background)_100%)]" />
+      {/* Background */}
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-[#0d0f14]" />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 30% 20%, rgba(245,158,11,0.08) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(251,146,60,0.05) 0%, transparent 50%)" }} />
+        {/* Decorative grid */}
+        <svg className="absolute inset-0 h-full w-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f59e0b" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+      </div>
 
-      <div className="relative grid w-full max-w-5xl gap-6 lg:grid-cols-[1fr_1.05fr]">
-        <section className="panel app-enter app-enter-delay-1 overflow-hidden p-7">
-          <div className="mt-auto rounded-lg border border-[color:rgba(31,99,85,0.24)] bg-[color:rgba(31,99,85,0.07)] px-4 py-3 text-xs text-[var(--foreground)]">
-            <p className="font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-              Credenciales demo
-            </p>
-            <p className="mt-1">Admin: admin / admin123</p>
-            <p>Empleado: empleado / empleado123</p>
+      <div className="relative w-full max-w-md">
+        {/* Logo / Brand */}
+        <div className="mb-8 text-center app-enter">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10">
+            <span className="text-3xl">🍽️</span>
           </div>
-        </section>
-
-        <section className="panel app-enter app-enter-delay-2 p-7 lg:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
-            Acceso seguro
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Restaurant<span className="text-amber-400">OS</span>
+          </h1>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">
+            Sistema de punto de venta para restaurantes
           </p>
-          <h2 className="mt-2 text-[1.9rem] leading-none text-[var(--foreground)]">Iniciar sesion</h2>
-          <p className="mt-2 text-sm text-[var(--ink-soft)]">
-            Ingresa con un usuario autorizado para continuar.
+        </div>
+
+        {/* Login Card */}
+        <div className="app-enter app-enter-delay-1 panel p-8">
+          <h2 className="text-lg font-semibold text-white">Iniciar sesión</h2>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">
+            Ingresa con tus credenciales para continuar
           </p>
 
-          <div className="mt-5">
-            <NoticeBanner error={error} />
-          </div>
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
 
-          <form action="/api/auth/login" method="post" className="space-y-4">
+          <form action="/api/auth/login" method="post" className="mt-6 space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">Usuario</span>
-              <input required name="username" type="text" placeholder="admin" className="form-input" />
+              <input required name="username" type="text" placeholder="admin" className="form-input" autoComplete="username" />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
-                Contrasena
-              </span>
-              <input
-                required
-                name="password"
-                type="password"
-                placeholder="admin123"
-                className="form-input"
-              />
+              <span className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">Contraseña</span>
+              <input required name="password" type="password" placeholder="••••••••" className="form-input" autoComplete="current-password" />
             </label>
 
-            <button type="submit" className="action-btn action-btn-primary w-full">
-              Entrar al panel
+            <button type="submit" className="action-btn action-btn-primary w-full justify-center py-3 text-sm">
+              Entrar al sistema
             </button>
           </form>
+        </div>
 
-          <p className="mt-4 text-xs text-[var(--ink-soft)]">
-            Este MVP usa almacenamiento en memoria para acelerar la validacion funcional.
-          </p>
-        </section>
+        {/* Demo credentials */}
+        <div className="app-enter app-enter-delay-2 mt-4 rounded-xl border border-amber-500/10 bg-amber-500/5 p-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-amber-500/80">Credenciales demo</p>
+          <div className="mt-2 space-y-1 text-xs text-[var(--ink-muted)]">
+            <p><span className="text-amber-400/80">Admin:</span> admin / admin123</p>
+            <p><span className="text-amber-400/80">Mesero:</span> empleado / empleado123</p>
+            <p><span className="text-amber-400/80">Cocina:</span> cocina / cocina123</p>
+          </div>
+        </div>
       </div>
     </div>
   );

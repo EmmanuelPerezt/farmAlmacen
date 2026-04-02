@@ -24,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return redirectWithError(request, "Credenciales invalidas.");
   }
 
-  const response = NextResponse.redirect(new URL("/dashboard", request.url));
+  const response = NextResponse.redirect(new URL("/mesas", request.url));
   setSessionCookie(response, session);
 
   return response;

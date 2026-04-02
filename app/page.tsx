@@ -6,7 +6,7 @@ export default async function Home() {
   const session = await getSessionFromCookies();
 
   if (session) {
-    redirect("/dashboard");
+    redirect("/mesas");
   }
 
   redirect("/login");

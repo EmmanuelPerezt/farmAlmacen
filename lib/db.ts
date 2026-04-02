@@ -1,951 +1,453 @@
-import { PrismaClient, type Prisma } from "@prisma/client";
-
+import { PrismaClient } from "@prisma/client";
 import type {
-  CashRegisterSession,
-  DashboardMetrics,
-  Movement,
-  MovementType,
-  Product,
-  ProductWithStock,
-  Role,
-  Sale,
-  SaleLineItem,
-  SaleType,
-  Session,
   User,
-  Warehouse,
-  WarehouseStockSummary,
+  Session,
+  TableSection,
+  Table,
+  TableWithStatus,
+  TableStatus,
+  TableShape,
+  MenuItem,
+  MenuCategory,
+  Order,
+  OrderItem,
+  RestaurantStats,
 } from "@/lib/types";
 
-const LOW_STOCK_THRESHOLD = 10;
-
 declare global {
+  // eslint-disable-next-line no-var
   var __prisma: PrismaClient | undefined;
 }
 
-const prisma = globalThis.__prisma ?? new PrismaClient();
+export const prisma: PrismaClient =
+  globalThis.__prisma ??
+  new PrismaClient({ log: [] });
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
 }
 
-// ─── Type converters ─────────────────────────────────────────────────────────
+// ─── Converters ───────────────────────────────────────────────────
 
-type RawProduct = {
-  sku: number;
-  name: string;
-  price: number;
-  expirationDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+function toUser(r: {
+  id: string; username: string; password: string;
+  displayName: string; role: string; createdAt: Date;
+}): User {
+  return { id: r.id, username: r.username, password: r.password,
+    displayName: r.displayName, role: r.role as User["role"],
+    createdAt: r.createdAt.toISOString() };
+}
 
-type RawWarehouse = {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
+function toTableSection(r: {
+  id: string; name: string; color: string; sortOrder: number; createdAt: Date;
+}): TableSection {
+  return { id: r.id, name: r.name, color: r.color, sortOrder: r.sortOrder,
+    createdAt: r.createdAt.toISOString() };
+}
 
-type RawUser = {
-  id: string;
-  username: string;
-  password: string;
-  displayName: string;
-  role: string;
-  createdAt: Date;
-};
-
-type RawMovement = {
-  id: string;
-  type: string;
-  sku: number;
-  productName: string;
-  quantity: number;
-  sourceWarehouseId: string | null;
-  sourceWarehouseName: string | null;
-  targetWarehouseId: string | null;
-  targetWarehouseName: string | null;
-  sourceBeforeQty: number | null;
-  sourceAfterQty: number | null;
-  targetBeforeQty: number | null;
-  targetAfterQty: number | null;
-  performedBy: string;
-  performedByName: string;
-  note: string;
-  createdAt: Date;
-};
-
-type RawSale = {
-  id: string;
-  warehouseId: string;
-  warehouseName: string;
-  items: string;
-  itemCount: number;
-  total: number;
-  cashReceived: number;
-  change: number;
-  saleType: string;
-  authorizedBy: string | null;
-  authorizedByName: string | null;
-  cashRegisterSessionId: string | null;
-  performedBy: string;
-  performedByName: string;
-  createdAt: Date;
-};
-
-type RawCashRegisterSession = {
-  id: string;
-  warehouseId: string;
-  warehouseName: string;
-  openingBalance: number;
-  closedAt: Date | null;
-  openedBy: string;
-  openedByName: string;
-  createdAt: Date;
-};
-
-function toProduct(raw: RawProduct): Product {
+function toTable(r: {
+  id: string; number: number; name: string | null; sectionId: string | null;
+  shape: string; seats: number; posX: number; posY: number;
+  width: number; height: number; rotation: number;
+  createdAt: Date; updatedAt: Date;
+  section?: { name: string; color: string } | null;
+}): Table {
   return {
-    sku: raw.sku,
-    name: raw.name,
-    price: raw.price,
-    expirationDate: raw.expirationDate?.toISOString() ?? null,
-    createdAt: raw.createdAt.toISOString(),
-    updatedAt: raw.updatedAt.toISOString(),
+    id: r.id, number: r.number, name: r.name, sectionId: r.sectionId,
+    sectionName: r.section?.name ?? null, sectionColor: r.section?.color ?? null,
+    shape: r.shape as TableShape, seats: r.seats,
+    posX: r.posX, posY: r.posY, width: r.width, height: r.height, rotation: r.rotation,
+    createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(),
   };
 }
 
-function toWarehouse(raw: RawWarehouse): Warehouse {
+function toMenuItem(r: {
+  id: string; name: string; description: string; price: number;
+  categoryId: string; available: boolean; sortOrder: number;
+  createdAt: Date; updatedAt: Date;
+  category?: { name: string } | null;
+}): MenuItem {
   return {
-    id: raw.id,
-    name: raw.name,
-    description: raw.description,
-    createdAt: raw.createdAt.toISOString(),
-    updatedAt: raw.updatedAt.toISOString(),
+    id: r.id, name: r.name, description: r.description, price: r.price,
+    categoryId: r.categoryId, categoryName: r.category?.name ?? "",
+    available: r.available, sortOrder: r.sortOrder,
+    createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(),
   };
 }
 
-function toUser(raw: RawUser): User {
+function toOrderItem(r: {
+  id: string; orderId: string; menuItemId: string; name: string;
+  unitPrice: number; quantity: number; notes: string;
+  sentAt: Date | null; createdAt: Date;
+}): OrderItem {
   return {
-    id: raw.id,
-    username: raw.username,
-    password: raw.password,
-    displayName: raw.displayName,
-    role: raw.role as Role,
-    createdAt: raw.createdAt.toISOString(),
+    id: r.id, orderId: r.orderId, menuItemId: r.menuItemId, name: r.name,
+    unitPrice: r.unitPrice, quantity: r.quantity, notes: r.notes,
+    sentAt: r.sentAt?.toISOString() ?? null, createdAt: r.createdAt.toISOString(),
   };
 }
 
-function toMovement(raw: RawMovement): Movement {
+function toOrder(r: {
+  id: string; tableId: string; status: string; guestCount: number;
+  notes: string; openedBy: string; openedByName: string;
+  closedAt: Date | null; total: number; cashReceived: number | null;
+  change: number | null; paymentMethod: string | null; folio: number | null;
+  createdAt: Date; updatedAt: Date;
+  table?: { number: number; name: string | null } | null;
+  items?: Array<{ id: string; orderId: string; menuItemId: string; name: string;
+    unitPrice: number; quantity: number; notes: string; sentAt: Date | null; createdAt: Date; }>;
+}): Order {
   return {
-    id: raw.id,
-    type: raw.type as MovementType,
-    sku: raw.sku,
-    productName: raw.productName,
-    quantity: raw.quantity,
-    sourceWarehouseId: raw.sourceWarehouseId,
-    sourceWarehouseName: raw.sourceWarehouseName,
-    targetWarehouseId: raw.targetWarehouseId,
-    targetWarehouseName: raw.targetWarehouseName,
-    sourceBeforeQty: raw.sourceBeforeQty,
-    sourceAfterQty: raw.sourceAfterQty,
-    targetBeforeQty: raw.targetBeforeQty,
-    targetAfterQty: raw.targetAfterQty,
-    performedBy: raw.performedBy,
-    performedByName: raw.performedByName,
-    note: raw.note,
-    createdAt: raw.createdAt.toISOString(),
+    id: r.id, tableId: r.tableId, tableNumber: r.table?.number ?? 0,
+    tableName: r.table?.name ?? null, status: r.status as Order["status"],
+    guestCount: r.guestCount, items: (r.items ?? []).map(toOrderItem),
+    notes: r.notes, openedBy: r.openedBy, openedByName: r.openedByName,
+    closedAt: r.closedAt?.toISOString() ?? null, total: r.total,
+    cashReceived: r.cashReceived, change: r.change,
+    paymentMethod: r.paymentMethod as Order["paymentMethod"], folio: r.folio,
+    createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(),
   };
 }
 
-function parseSale(raw: RawSale): Sale {
-  return {
-    id: raw.id,
-    warehouseId: raw.warehouseId,
-    warehouseName: raw.warehouseName,
-    items: JSON.parse(raw.items) as SaleLineItem[],
-    itemCount: raw.itemCount,
-    total: raw.total,
-    cashReceived: raw.cashReceived,
-    change: raw.change,
-    saleType: (raw.saleType as SaleType) ?? "normal",
-    authorizedBy: raw.authorizedBy,
-    authorizedByName: raw.authorizedByName,
-    cashRegisterSessionId: raw.cashRegisterSessionId,
-    performedBy: raw.performedBy,
-    performedByName: raw.performedByName,
-    createdAt: raw.createdAt.toISOString(),
-  };
-}
-
-async function parseCashRegisterSession(
-  raw: RawCashRegisterSession,
-): Promise<CashRegisterSession> {
-  const sales = await prisma.sale.findMany({
-    where: { cashRegisterSessionId: raw.id },
-  });
-
-  const normalSales = sales.filter((s) => s.saleType === "normal" || !s.saleType);
-  const cortesiaSales = sales.filter((s) => s.saleType === "cortesia");
-
-  const totalSales = Number(
-    normalSales.reduce((acc, s) => acc + s.total, 0).toFixed(2),
-  );
-  const totalCortesia = Number(
-    cortesiaSales.reduce((acc, s) => acc + s.total, 0).toFixed(2),
-  );
-
-  return {
-    id: raw.id,
-    warehouseId: raw.warehouseId,
-    warehouseName: raw.warehouseName,
-    openingBalance: raw.openingBalance,
-    closedAt: raw.closedAt?.toISOString() ?? null,
-    openedBy: raw.openedBy,
-    openedByName: raw.openedByName,
-    createdAt: raw.createdAt.toISOString(),
-    totalSales,
-    totalCortesia,
-    expectedBalance: Number((raw.openingBalance + totalSales).toFixed(2)),
-  };
-}
-
-function toPublicUser(user: User): Omit<User, "password"> {
-  const { password, ...safeUser } = user;
-  void password;
-  return safeUser;
-}
-
-// ─── Input types ─────────────────────────────────────────────────────────────
-
-type MovementInput = {
-  type: MovementType;
-  sku: number;
-  quantity: number;
-  sourceWarehouseId?: string;
-  targetWarehouseId?: string;
-  note?: string;
-  actor: Session;
-};
-
-type SaleInput = {
-  warehouseId: string;
-  items: Array<{ sku: number; quantity: number }>;
-  cashReceived: number;
-  saleType?: SaleType;
-  authorizedBy?: string;
-  authorizedByName?: string;
-  cashRegisterSessionId?: string;
-  actor: Session;
-};
-
-type CashRegisterSessionInput = {
-  warehouseId: string;
-  openingBalance: number;
-  actor: Session;
-};
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// ─── Users / Auth ─────────────────────────────────────────────────
 
 export async function authenticateUser(username: string, password: string): Promise<Session | null> {
-  const user = await prisma.user.findFirst({
-    where: { username, password },
-  });
-
-  if (!user) {
-    return null;
-  }
-
-  return {
-    username: user.username,
-    displayName: user.displayName,
-    role: user.role as Role,
-  };
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user || user.password !== password) return null;
+  return { username: user.username, displayName: user.displayName, role: user.role as Session["role"] };
 }
 
-// ─── Users ────────────────────────────────────────────────────────────────────
-
-export async function listUsers(): Promise<Array<Omit<User, "password">>> {
-  const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
-  return users.map((u) => toPublicUser(toUser(u)));
+export async function listUsers(): Promise<User[]> {
+  const rows = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
+  return rows.map(toUser);
 }
 
-export async function createUser(input: {
-  username: string;
-  password: string;
-  displayName: string;
-  role: Role;
-}): Promise<Omit<User, "password">> {
-  const username = input.username.trim().toLowerCase();
-  const password = input.password.trim();
-  const displayName = input.displayName.trim();
+// ─── Table Sections ───────────────────────────────────────────────
 
-  if (!username) {
-    throw new Error("El nombre de usuario es obligatorio.");
-  }
-
-  if (password.length < 4) {
-    throw new Error("La contrasena debe tener al menos 4 caracteres.");
-  }
-
-  if (!displayName) {
-    throw new Error("El nombre para mostrar es obligatorio.");
-  }
-
-  try {
-    const created = await prisma.user.create({
-      data: { username, password, displayName, role: input.role },
-    });
-    return toPublicUser(toUser(created));
-  } catch (error) {
-    const msg = (error as { code?: string }).code;
-    if (msg === "P2002") {
-      throw new Error("Ya existe un usuario con ese nombre.");
-    }
-    throw error;
-  }
+export async function listTableSections(): Promise<TableSection[]> {
+  const rows = await prisma.tableSection.findMany({ orderBy: { sortOrder: "asc" } });
+  return rows.map(toTableSection);
 }
 
-// ─── Warehouses ───────────────────────────────────────────────────────────────
-
-export async function listWarehouses(): Promise<Warehouse[]> {
-  const warehouses = await prisma.warehouse.findMany({ orderBy: { name: "asc" } });
-  return warehouses.map(toWarehouse);
+export async function createTableSection(data: { name: string; color: string }): Promise<TableSection> {
+  const count = await prisma.tableSection.count();
+  const row = await prisma.tableSection.create({ data: { ...data, sortOrder: count } });
+  return toTableSection(row);
 }
 
-export async function listWarehousesWithStock(): Promise<WarehouseStockSummary[]> {
-  const [warehouses, inventoryRecords] = await Promise.all([
-    prisma.warehouse.findMany({ orderBy: { name: "asc" } }),
-    prisma.inventory.findMany(),
-  ]);
-
-  return warehouses.map((warehouse) => {
-    const warehouseInventory = inventoryRecords.filter((i) => i.warehouseId === warehouse.id);
-    const totalQty = warehouseInventory.reduce((acc, i) => acc + i.qty, 0);
-    const totalProducts = warehouseInventory.filter((i) => i.qty > 0).length;
-
-    return {
-      ...toWarehouse(warehouse),
-      totalQty,
-      totalProducts,
-    };
-  });
+export async function updateTableSection(id: string, data: { name?: string; color?: string; sortOrder?: number }): Promise<TableSection> {
+  const row = await prisma.tableSection.update({ where: { id }, data });
+  return toTableSection(row);
 }
 
-export async function createWarehouse(input: {
-  name: string;
-  description?: string;
-}): Promise<Warehouse> {
-  const name = input.name.trim();
-  const description = (input.description ?? "").trim();
-
-  if (!name) {
-    throw new Error("El nombre del almacen es obligatorio.");
-  }
-
-  try {
-    const warehouse = await prisma.warehouse.create({
-      data: { name, description },
-    });
-    return toWarehouse(warehouse);
-  } catch (error) {
-    const msg = (error as { code?: string }).code;
-    if (msg === "P2002") {
-      throw new Error("Ya existe un almacen con ese nombre.");
-    }
-    throw error;
-  }
+export async function deleteTableSection(id: string): Promise<void> {
+  await prisma.tableSection.delete({ where: { id } });
 }
 
-export async function updateWarehouse(input: {
-  id: string;
-  name: string;
-  description?: string;
-}): Promise<Warehouse> {
-  const name = input.name.trim();
+// ─── Tables ───────────────────────────────────────────────────────
 
-  if (!name) {
-    throw new Error("El nombre del almacen es obligatorio.");
-  }
-
-  const existing = await prisma.warehouse.findUnique({ where: { id: input.id } });
-  if (!existing) {
-    throw new Error("El almacen seleccionado no existe.");
-  }
-
-  // Check unique name among other warehouses (case-insensitive in code for SQLite)
-  const others = await prisma.warehouse.findMany({ where: { id: { not: input.id } } });
-  if (others.some((w) => w.name.toLowerCase() === name.toLowerCase())) {
-    throw new Error("Ya existe un almacen con ese nombre.");
-  }
-
-  const warehouse = await prisma.warehouse.update({
-    where: { id: input.id },
-    data: { name, description: (input.description ?? "").trim() },
-  });
-  return toWarehouse(warehouse);
+export async function listTables(): Promise<Table[]> {
+  const rows = await prisma.table.findMany({ include: { section: true }, orderBy: { number: "asc" } });
+  return rows.map(toTable);
 }
 
-export async function deleteWarehouse(warehouseId: string): Promise<void> {
-  const warehouse = await prisma.warehouse.findUnique({ where: { id: warehouseId } });
-  if (!warehouse) {
-    throw new Error("El almacen seleccionado no existe.");
-  }
-
-  const stockCount = await prisma.inventory.aggregate({
-    where: { warehouseId },
-    _sum: { qty: true },
-  });
-
-  if ((stockCount._sum.qty ?? 0) > 0) {
-    throw new Error("No se puede eliminar un almacen con stock disponible.");
-  }
-
-  await prisma.warehouse.delete({ where: { id: warehouseId } });
-}
-
-// ─── Products ─────────────────────────────────────────────────────────────────
-
-export async function listProductsWithStock(): Promise<ProductWithStock[]> {
-  const [products, warehouses, inventoryRecords] = await Promise.all([
-    prisma.product.findMany({ orderBy: { name: "asc" } }),
-    prisma.warehouse.findMany({ orderBy: { name: "asc" } }),
-    prisma.inventory.findMany(),
-  ]);
-
-  return products.map((product) => {
-    const stockByWarehouse = warehouses.map((warehouse) => {
-      const inv = inventoryRecords.find(
-        (i) => i.warehouseId === warehouse.id && i.sku === product.sku,
-      );
-      return {
-        warehouseId: warehouse.id,
-        warehouseName: warehouse.name,
-        qty: inv?.qty ?? 0,
-      };
-    });
-
-    const totalQty = stockByWarehouse.reduce((acc, item) => acc + item.qty, 0);
-
-    return {
-      ...toProduct(product),
-      totalQty,
-      stockByWarehouse,
-    };
-  });
-}
-
-export async function createProduct(input: {
-  sku: number;
-  name: string;
-  price: number;
-  expirationDate?: string;
-  initialQty?: number;
-  initialWarehouseId?: string;
-}): Promise<Product> {
-  if (!Number.isInteger(input.sku) || input.sku <= 0) {
-    throw new Error("El SKU debe ser un numero entero positivo.");
-  }
-
-  const name = input.name.trim();
-  if (!name) {
-    throw new Error("El nombre del producto es obligatorio.");
-  }
-
-  if (!Number.isFinite(input.price) || input.price < 0) {
-    throw new Error("El precio debe ser un numero mayor o igual a 0.");
-  }
-
-  const initialQty = input.initialQty ?? 0;
-  if (initialQty > 0 && !input.initialWarehouseId) {
-    throw new Error("Selecciona un almacen para asignar el stock inicial.");
-  }
-
-  if (input.initialWarehouseId) {
-    const warehouse = await prisma.warehouse.findUnique({
-      where: { id: input.initialWarehouseId },
-    });
-    if (!warehouse) {
-      throw new Error("El almacen seleccionado no existe.");
-    }
-  }
-
-  try {
-    const product = await prisma.$transaction(async (tx) => {
-      const created = await tx.product.create({
-        data: {
-          sku: input.sku,
-          name,
-          price: Number(input.price.toFixed(2)),
-          expirationDate: input.expirationDate ? new Date(input.expirationDate) : null,
-        },
-      });
-
-      if (initialQty > 0 && input.initialWarehouseId) {
-        await tx.inventory.upsert({
-          where: {
-            warehouseId_sku: {
-              warehouseId: input.initialWarehouseId,
-              sku: input.sku,
-            },
-          },
-          update: { qty: Math.trunc(initialQty) },
-          create: {
-            warehouseId: input.initialWarehouseId,
-            sku: input.sku,
-            qty: Math.trunc(initialQty),
-          },
-        });
-      }
-
-      return created;
-    });
-
-    return toProduct(product);
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "P2002") {
-      throw new Error("Ya existe un producto con ese SKU.");
-    }
-    throw error;
-  }
-}
-
-export async function updateProduct(input: {
-  sku: number;
-  name: string;
-  price: number;
-  expirationDate?: string | null;
-}): Promise<Product> {
-  const name = input.name.trim();
-
-  if (!name) {
-    throw new Error("El nombre del producto es obligatorio.");
-  }
-
-  if (!Number.isFinite(input.price) || input.price < 0) {
-    throw new Error("El precio debe ser un numero mayor o igual a 0.");
-  }
-
-  const existing = await prisma.product.findUnique({ where: { sku: input.sku } });
-  if (!existing) {
-    throw new Error("El producto seleccionado no existe.");
-  }
-
-  const data: Prisma.ProductUpdateInput = {
-    name,
-    price: Number(input.price.toFixed(2)),
-  };
-
-  if (input.expirationDate !== undefined) {
-    data.expirationDate = input.expirationDate ? new Date(input.expirationDate) : null;
-  }
-
-  const product = await prisma.product.update({
-    where: { sku: input.sku },
-    data,
-  });
-  return toProduct(product);
-}
-
-export async function deleteProduct(sku: number): Promise<void> {
-  const existing = await prisma.product.findUnique({ where: { sku } });
-  if (!existing) {
-    throw new Error("El producto seleccionado no existe.");
-  }
-
-  const stockCount = await prisma.inventory.aggregate({
-    where: { sku },
-    _sum: { qty: true },
-  });
-
-  if ((stockCount._sum.qty ?? 0) > 0) {
-    throw new Error("No se puede eliminar un producto con stock disponible.");
-  }
-
-  await prisma.product.delete({ where: { sku } });
-}
-
-// ─── Movements ────────────────────────────────────────────────────────────────
-
-export async function listMovements(limit?: number): Promise<Movement[]> {
-  const movements = await prisma.movement.findMany({
-    orderBy: { createdAt: "desc" },
-    ...(limit ? { take: limit } : {}),
-  });
-  return movements.map(toMovement);
-}
-
-async function createMovementTx(
-  tx: Prisma.TransactionClient,
-  input: MovementInput,
-): Promise<Movement> {
-  const qty = Math.trunc(input.quantity);
-
-  if (!Number.isInteger(qty) || qty <= 0) {
-    throw new Error("La cantidad debe ser un numero entero positivo.");
-  }
-
-  const product = await tx.product.findUnique({ where: { sku: input.sku } });
-  if (!product) {
-    throw new Error("El producto seleccionado no existe.");
-  }
-
-  let sourceWarehouse: { id: string; name: string } | null = null;
-  let targetWarehouse: { id: string; name: string } | null = null;
-
-  if (input.type === "salida" || input.type === "traslado") {
-    if (!input.sourceWarehouseId) {
-      throw new Error("Debes seleccionar un almacen origen.");
-    }
-    sourceWarehouse = await tx.warehouse.findUnique({
-      where: { id: input.sourceWarehouseId },
-    });
-    if (!sourceWarehouse) {
-      throw new Error("El almacen seleccionado no existe.");
-    }
-  }
-
-  if (input.type === "entrada" || input.type === "traslado") {
-    if (!input.targetWarehouseId) {
-      throw new Error("Debes seleccionar un almacen destino.");
-    }
-    targetWarehouse = await tx.warehouse.findUnique({
-      where: { id: input.targetWarehouseId },
-    });
-    if (!targetWarehouse) {
-      throw new Error("El almacen seleccionado no existe.");
-    }
-  }
-
-  if (sourceWarehouse && targetWarehouse && sourceWarehouse.id === targetWarehouse.id) {
-    throw new Error("El traslado requiere almacenes distintos.");
-  }
-
-  const sourceInv = sourceWarehouse
-    ? await tx.inventory.findUnique({
-        where: { warehouseId_sku: { warehouseId: sourceWarehouse.id, sku: product.sku } },
-      })
-    : null;
-  const targetInv = targetWarehouse
-    ? await tx.inventory.findUnique({
-        where: { warehouseId_sku: { warehouseId: targetWarehouse.id, sku: product.sku } },
-      })
-    : null;
-
-  const sourceBeforeQty =
-    sourceWarehouse !== null ? (sourceInv?.qty ?? 0) : null;
-  const targetBeforeQty =
-    targetWarehouse !== null ? (targetInv?.qty ?? 0) : null;
-
-  if (sourceWarehouse && sourceBeforeQty !== null && sourceBeforeQty < qty) {
-    throw new Error("Stock insuficiente en el almacen origen. No se permite stock negativo.");
-  }
-
-  const sourceAfterQty =
-    sourceWarehouse && sourceBeforeQty !== null ? sourceBeforeQty - qty : null;
-  const targetAfterQty =
-    targetWarehouse && targetBeforeQty !== null ? targetBeforeQty + qty : null;
-
-  if (sourceWarehouse && sourceAfterQty !== null) {
-    if (sourceAfterQty <= 0) {
-      await tx.inventory.deleteMany({
-        where: { warehouseId: sourceWarehouse.id, sku: product.sku },
-      });
-    } else {
-      await tx.inventory.upsert({
-        where: { warehouseId_sku: { warehouseId: sourceWarehouse.id, sku: product.sku } },
-        update: { qty: sourceAfterQty },
-        create: { warehouseId: sourceWarehouse.id, sku: product.sku, qty: sourceAfterQty },
-      });
-    }
-  }
-
-  if (targetWarehouse && targetAfterQty !== null) {
-    await tx.inventory.upsert({
-      where: { warehouseId_sku: { warehouseId: targetWarehouse.id, sku: product.sku } },
-      update: { qty: targetAfterQty },
-      create: { warehouseId: targetWarehouse.id, sku: product.sku, qty: targetAfterQty },
-    });
-  }
-
-  const movement = await tx.movement.create({
-    data: {
-      type: input.type,
-      sku: product.sku,
-      productName: product.name,
-      quantity: qty,
-      sourceWarehouseId: sourceWarehouse?.id ?? null,
-      sourceWarehouseName: sourceWarehouse?.name ?? null,
-      targetWarehouseId: targetWarehouse?.id ?? null,
-      targetWarehouseName: targetWarehouse?.name ?? null,
-      sourceBeforeQty,
-      sourceAfterQty,
-      targetBeforeQty,
-      targetAfterQty,
-      performedBy: input.actor.username,
-      performedByName: input.actor.displayName,
-      note: (input.note ?? "").trim(),
+export async function listTablesWithStatus(): Promise<TableWithStatus[]> {
+  const tables = await prisma.table.findMany({
+    include: {
+      section: true,
+      orders: {
+        where: { status: { in: ["open", "billed"] } },
+        include: { items: true },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
     },
+    orderBy: { number: "asc" },
   });
 
-  return toMovement(movement);
-}
-
-export async function createMovement(input: MovementInput): Promise<Movement> {
-  return prisma.$transaction((tx) => createMovementTx(tx, input));
-}
-
-export async function listProductsWithStockByWarehouse(
-  warehouseId: string,
-): Promise<Array<Product & { qty: number }>> {
-  const warehouse = await prisma.warehouse.findUnique({ where: { id: warehouseId } });
-  if (!warehouse) {
-    throw new Error("El almacen seleccionado no existe.");
-  }
-
-  const inventoryRecords = await prisma.inventory.findMany({
-    where: { warehouseId, qty: { gt: 0 } },
-    include: { product: true },
-    orderBy: { product: { name: "asc" } },
+  return tables.map((t) => {
+    const active = t.orders[0] ?? null;
+    const status: TableStatus = active ? "occupied" : "available";
+    return {
+      ...toTable(t),
+      status,
+      activeOrder: active
+        ? {
+            id: active.id,
+            guestCount: active.guestCount,
+            total: active.total,
+            itemCount: active.items.reduce((s, i) => s + i.quantity, 0),
+            openedAt: active.createdAt.toISOString(),
+            openedByName: active.openedByName,
+            minutesOpen: Math.floor((Date.now() - active.createdAt.getTime()) / 60000),
+          }
+        : null,
+    };
   });
+}
 
-  return inventoryRecords.map((inv) => ({
-    ...toProduct(inv.product),
-    qty: inv.qty,
+export async function getTable(id: string): Promise<Table | null> {
+  const row = await prisma.table.findUnique({ where: { id }, include: { section: true } });
+  return row ? toTable(row) : null;
+}
+
+export async function createTable(data: {
+  number: number; name?: string; sectionId?: string; shape: string;
+  seats: number; posX: number; posY: number; width: number; height: number;
+}): Promise<Table> {
+  const row = await prisma.table.create({
+    data: { ...data, name: data.name ?? null, sectionId: data.sectionId ?? null },
+    include: { section: true },
+  });
+  return toTable(row);
+}
+
+export async function updateTable(id: string, data: Partial<{
+  number: number; name: string | null; sectionId: string | null;
+  shape: string; seats: number; posX: number; posY: number;
+  width: number; height: number; rotation: number;
+}>): Promise<Table> {
+  const row = await prisma.table.update({ where: { id }, data, include: { section: true } });
+  return toTable(row);
+}
+
+export async function updateTableLayout(updates: Array<{
+  id: string; posX: number; posY: number; width: number; height: number; rotation: number;
+}>): Promise<void> {
+  await Promise.all(updates.map((u) =>
+    prisma.table.update({ where: { id: u.id }, data: { posX: u.posX, posY: u.posY, width: u.width, height: u.height, rotation: u.rotation } })
+  ));
+}
+
+export async function deleteTable(id: string): Promise<void> {
+  await prisma.table.delete({ where: { id } });
+}
+
+// ─── Menu Categories ──────────────────────────────────────────────
+
+export async function listMenuCategories(): Promise<MenuCategory[]> {
+  const rows = await prisma.menuCategory.findMany({
+    include: { _count: { select: { items: true } } },
+    orderBy: { sortOrder: "asc" },
+  });
+  return rows.map((r) => ({
+    id: r.id, name: r.name, emoji: r.emoji, sortOrder: r.sortOrder,
+    itemCount: r._count.items, createdAt: r.createdAt.toISOString(),
   }));
 }
 
-// ─── Cash Register Sessions ───────────────────────────────────────────────────
+export async function createMenuCategory(data: { name: string; emoji: string }): Promise<MenuCategory> {
+  const count = await prisma.menuCategory.count();
+  const row = await prisma.menuCategory.create({
+    data: { ...data, sortOrder: count },
+    include: { _count: { select: { items: true } } },
+  });
+  return { id: row.id, name: row.name, emoji: row.emoji, sortOrder: row.sortOrder, itemCount: 0, createdAt: row.createdAt.toISOString() };
+}
 
-export async function createCashRegisterSession(
-  input: CashRegisterSessionInput,
-): Promise<CashRegisterSession> {
-  const warehouse = await prisma.warehouse.findUnique({ where: { id: input.warehouseId } });
-  if (!warehouse) {
-    throw new Error("El almacen seleccionado no existe.");
-  }
+export async function updateMenuCategory(id: string, data: { name?: string; emoji?: string; sortOrder?: number }): Promise<MenuCategory> {
+  const row = await prisma.menuCategory.update({
+    where: { id }, data,
+    include: { _count: { select: { items: true } } },
+  });
+  return { id: row.id, name: row.name, emoji: row.emoji, sortOrder: row.sortOrder, itemCount: row._count.items, createdAt: row.createdAt.toISOString() };
+}
 
-  if (!Number.isFinite(input.openingBalance) || input.openingBalance < 0) {
-    throw new Error("El fondo inicial debe ser un numero mayor o igual a 0.");
-  }
+export async function deleteMenuCategory(id: string): Promise<void> {
+  await prisma.menuCategory.delete({ where: { id } });
+}
 
-  const session = await prisma.cashRegisterSession.create({
-    data: {
-      warehouseId: warehouse.id,
-      warehouseName: warehouse.name,
-      openingBalance: Number(input.openingBalance.toFixed(2)),
-      openedBy: input.actor.username,
-      openedByName: input.actor.displayName,
+// ─── Menu Items ───────────────────────────────────────────────────
+
+export async function listMenuItems(categoryId?: string): Promise<MenuItem[]> {
+  const rows = await prisma.menuItem.findMany({
+    where: categoryId ? { categoryId } : undefined,
+    include: { category: true },
+    orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }],
+  });
+  return rows.map(toMenuItem);
+}
+
+export async function createMenuItem(data: { name: string; description: string; price: number; categoryId: string }): Promise<MenuItem> {
+  const count = await prisma.menuItem.count({ where: { categoryId: data.categoryId } });
+  const row = await prisma.menuItem.create({ data: { ...data, sortOrder: count }, include: { category: true } });
+  return toMenuItem(row);
+}
+
+export async function updateMenuItem(id: string, data: Partial<{
+  name: string; description: string; price: number;
+  categoryId: string; available: boolean; sortOrder: number;
+}>): Promise<MenuItem> {
+  const row = await prisma.menuItem.update({ where: { id }, data, include: { category: true } });
+  return toMenuItem(row);
+}
+
+export async function deleteMenuItem(id: string): Promise<void> {
+  await prisma.menuItem.delete({ where: { id } });
+}
+
+// ─── Orders ───────────────────────────────────────────────────────
+
+async function nextFolio(): Promise<number> {
+  const seq = await prisma.orderSequence.upsert({
+    where: { id: "singleton" },
+    update: { value: { increment: 1 } },
+    create: { id: "singleton", value: 101 },
+  });
+  return seq.value;
+}
+
+const ORDER_INCLUDE = {
+  table: true,
+  items: { orderBy: { createdAt: "asc" as const } },
+} as const;
+
+export async function listOrders(opts?: { status?: string | string[]; tableId?: string; limit?: number }): Promise<Order[]> {
+  const rows = await prisma.order.findMany({
+    where: {
+      ...(opts?.status ? { status: Array.isArray(opts.status) ? { in: opts.status } : opts.status } : {}),
+      ...(opts?.tableId ? { tableId: opts.tableId } : {}),
     },
-  });
-
-  return parseCashRegisterSession(session);
-}
-
-export async function findCashRegisterSession(id: string): Promise<CashRegisterSession> {
-  const session = await prisma.cashRegisterSession.findUnique({ where: { id } });
-  if (!session) {
-    throw new Error("La sesion de caja no existe.");
-  }
-  return parseCashRegisterSession(session);
-}
-
-export async function closeCashRegisterSession(id: string): Promise<CashRegisterSession> {
-  const session = await prisma.cashRegisterSession.findUnique({ where: { id } });
-  if (!session) {
-    throw new Error("La sesion de caja no existe.");
-  }
-
-  const updated = await prisma.cashRegisterSession.update({
-    where: { id },
-    data: { closedAt: new Date() },
-  });
-  return parseCashRegisterSession(updated);
-}
-
-export async function listAdminUsers(): Promise<Array<Omit<User, "password">>> {
-  const users = await prisma.user.findMany({
-    where: { role: "admin" },
-    orderBy: { displayName: "asc" },
-  });
-  return users.map((u) => toPublicUser(toUser(u)));
-}
-
-// ─── Sales ────────────────────────────────────────────────────────────────────
-
-export async function createSale(input: SaleInput): Promise<Sale> {
-  const saleType = input.saleType ?? "normal";
-  const isCortesia = saleType === "cortesia";
-
-  return prisma.$transaction(async (tx) => {
-    const warehouse = await tx.warehouse.findUnique({ where: { id: input.warehouseId } });
-    if (!warehouse) {
-      throw new Error("El almacen seleccionado no existe.");
-    }
-
-    if (!input.items.length) {
-      throw new Error("El carrito esta vacio.");
-    }
-
-    if (isCortesia && !input.authorizedBy) {
-      throw new Error("Las salidas sin pago requieren autorizacion de un administrador.");
-    }
-
-    const lineItems: SaleLineItem[] = [];
-
-    for (const item of input.items) {
-      const product = await tx.product.findUnique({ where: { sku: item.sku } });
-      if (!product) {
-        throw new Error("El producto seleccionado no existe.");
-      }
-
-      const qty = Math.trunc(item.quantity);
-      if (!Number.isInteger(qty) || qty <= 0) {
-        throw new Error(`Cantidad invalida para ${product.name}.`);
-      }
-
-      const inv = await tx.inventory.findUnique({
-        where: { warehouseId_sku: { warehouseId: warehouse.id, sku: product.sku } },
-      });
-      const available = inv?.qty ?? 0;
-
-      if (available < qty) {
-        throw new Error(
-          `Stock insuficiente para ${product.name}. Disponible: ${available}, solicitado: ${qty}.`,
-        );
-      }
-
-      lineItems.push({
-        sku: product.sku,
-        productName: product.name,
-        price: product.price,
-        quantity: qty,
-        subtotal: Number((product.price * qty).toFixed(2)),
-      });
-    }
-
-    const total = Number(lineItems.reduce((acc, item) => acc + item.subtotal, 0).toFixed(2));
-
-    if (!isCortesia) {
-      if (!Number.isFinite(input.cashReceived) || input.cashReceived < total) {
-        throw new Error("El monto recibido es insuficiente.");
-      }
-    }
-
-    const movementNote = isCortesia
-      ? `Salida sin pago - Autorizado por: ${input.authorizedByName ?? input.authorizedBy}`
-      : "Venta POS";
-
-    for (const item of lineItems) {
-      await createMovementTx(tx, {
-        type: "salida",
-        sku: item.sku,
-        quantity: item.quantity,
-        sourceWarehouseId: warehouse.id,
-        note: movementNote,
-        actor: input.actor,
-      });
-    }
-
-    const cashReceived = isCortesia ? 0 : input.cashReceived;
-    const change = isCortesia ? 0 : Number((input.cashReceived - total).toFixed(2));
-
-    const sale = await tx.sale.create({
-      data: {
-        warehouseId: warehouse.id,
-        warehouseName: warehouse.name,
-        items: JSON.stringify(lineItems),
-        itemCount: lineItems.reduce((acc, item) => acc + item.quantity, 0),
-        total,
-        cashReceived,
-        change,
-        saleType,
-        authorizedBy: input.authorizedBy ?? null,
-        authorizedByName: input.authorizedByName ?? null,
-        cashRegisterSessionId: input.cashRegisterSessionId ?? null,
-        performedBy: input.actor.username,
-        performedByName: input.actor.displayName,
-      },
-    });
-
-    return parseSale(sale);
-  });
-}
-
-export async function listSales(limit?: number): Promise<Sale[]> {
-  const sales = await prisma.sale.findMany({
+    include: ORDER_INCLUDE,
     orderBy: { createdAt: "desc" },
-    ...(limit ? { take: limit } : {}),
+    take: opts?.limit ?? 200,
   });
-  return sales.map(parseSale);
+  return rows.map(toOrder);
 }
 
-export async function findSaleById(id: string): Promise<Sale> {
-  const sale = await prisma.sale.findUnique({ where: { id } });
-  if (!sale) {
-    throw new Error("La venta no existe.");
+export async function getOrder(id: string): Promise<Order | null> {
+  const row = await prisma.order.findUnique({ where: { id }, include: ORDER_INCLUDE });
+  return row ? toOrder(row) : null;
+}
+
+export async function getActiveOrderForTable(tableId: string): Promise<Order | null> {
+  const row = await prisma.order.findFirst({
+    where: { tableId, status: { in: ["open", "billed"] } },
+    include: ORDER_INCLUDE,
+    orderBy: { createdAt: "desc" },
+  });
+  return row ? toOrder(row) : null;
+}
+
+export async function createOrder(data: {
+  tableId: string; guestCount: number; openedBy: string; openedByName: string; notes?: string;
+}): Promise<Order> {
+  const row = await prisma.order.create({
+    data: { tableId: data.tableId, guestCount: data.guestCount,
+      openedBy: data.openedBy, openedByName: data.openedByName,
+      notes: data.notes ?? "", status: "open" },
+    include: ORDER_INCLUDE,
+  });
+  return toOrder(row);
+}
+
+export async function updateOrder(id: string, data: Partial<{ guestCount: number; notes: string; status: string }>): Promise<Order> {
+  const row = await prisma.order.update({ where: { id }, data, include: ORDER_INCLUDE });
+  return toOrder(row);
+}
+
+export async function addOrderItem(orderId: string, data: { menuItemId: string; quantity: number; notes?: string }): Promise<Order> {
+  const menuItem = await prisma.menuItem.findUnique({ where: { id: data.menuItemId } });
+  if (!menuItem) throw new Error("Item de menú no encontrado");
+  const notes = data.notes ?? "";
+  const existing = await prisma.orderItem.findFirst({ where: { orderId, menuItemId: data.menuItemId, notes } });
+  if (existing) {
+    await prisma.orderItem.update({ where: { id: existing.id }, data: { quantity: existing.quantity + data.quantity } });
+  } else {
+    await prisma.orderItem.create({ data: { orderId, menuItemId: data.menuItemId, name: menuItem.name, unitPrice: menuItem.price, quantity: data.quantity, notes } });
   }
-  return parseSale(sale);
+  const items = await prisma.orderItem.findMany({ where: { orderId } });
+  const total = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  await prisma.order.update({ where: { id: orderId }, data: { total } });
+  const row = await prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: ORDER_INCLUDE });
+  return toOrder(row);
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+export async function updateOrderItem(itemId: string, data: { quantity?: number; notes?: string }): Promise<Order> {
+  const item = await prisma.orderItem.findUniqueOrThrow({ where: { id: itemId } });
+  if (data.quantity !== undefined && data.quantity <= 0) {
+    await prisma.orderItem.delete({ where: { id: itemId } });
+  } else {
+    await prisma.orderItem.update({ where: { id: itemId }, data });
+  }
+  const items = await prisma.orderItem.findMany({ where: { orderId: item.orderId } });
+  const total = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  await prisma.order.update({ where: { id: item.orderId }, data: { total } });
+  const row = await prisma.order.findUniqueOrThrow({ where: { id: item.orderId }, include: ORDER_INCLUDE });
+  return toOrder(row);
+}
 
-const EXPIRATION_THRESHOLD_DAYS = 30;
+export async function removeOrderItem(itemId: string): Promise<Order> {
+  const item = await prisma.orderItem.findUniqueOrThrow({ where: { id: itemId } });
+  await prisma.orderItem.delete({ where: { id: itemId } });
+  const items = await prisma.orderItem.findMany({ where: { orderId: item.orderId } });
+  const total = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  await prisma.order.update({ where: { id: item.orderId }, data: { total } });
+  const row = await prisma.order.findUniqueOrThrow({ where: { id: item.orderId }, include: ORDER_INCLUDE });
+  return toOrder(row);
+}
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export async function markItemsSent(orderId: string): Promise<Order> {
+  await prisma.orderItem.updateMany({ where: { orderId, sentAt: null }, data: { sentAt: new Date() } });
+  const row = await prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: ORDER_INCLUDE });
+  return toOrder(row);
+}
+
+export async function billOrder(orderId: string): Promise<Order> {
+  const folio = await nextFolio();
+  const row = await prisma.order.update({ where: { id: orderId }, data: { status: "billed", folio }, include: ORDER_INCLUDE });
+  return toOrder(row);
+}
+
+export async function payOrder(orderId: string, data: { cashReceived?: number; paymentMethod: string }): Promise<Order> {
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  const folio = order.folio ?? (await nextFolio());
+  const cashReceived = data.cashReceived ?? order.total;
+  const change = Math.max(0, cashReceived - order.total);
+  const row = await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "paid", folio, cashReceived, change, paymentMethod: data.paymentMethod, closedAt: new Date() },
+    include: ORDER_INCLUDE,
+  });
+  return toOrder(row);
+}
+
+export async function cancelOrder(orderId: string): Promise<Order> {
+  const row = await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "cancelled", closedAt: new Date() },
+    include: ORDER_INCLUDE,
+  });
+  return toOrder(row);
+}
+
+// ─── Stats ────────────────────────────────────────────────────────
+
+export async function getRestaurantStats(): Promise<RestaurantStats> {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [products, warehouses, inventoryRecords, movementsToday, latestMovements] =
-    await Promise.all([
-      prisma.product.findMany({ orderBy: { name: "asc" } }),
-      prisma.warehouse.findMany(),
-      prisma.inventory.findMany(),
-      prisma.movement.count({ where: { createdAt: { gte: startOfDay } } }),
-      prisma.movement.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
-    ]);
+  const [tables, openOrders, todayOrders] = await Promise.all([
+    prisma.table.findMany({ include: { orders: { where: { status: { in: ["open", "billed"] } } } } }),
+    prisma.order.count({ where: { status: { in: ["open", "billed"] } } }),
+    prisma.order.findMany({ where: { createdAt: { gte: startOfDay }, status: { in: ["paid", "billed"] } }, include: { items: true } }),
+  ]);
 
-  const productWithTotals = products.map((product) => {
-    const totalQty = inventoryRecords
-      .filter((i) => i.sku === product.sku)
-      .reduce((acc, i) => acc + i.qty, 0);
-    return { ...product, totalQty };
-  });
-
-  const totalStock = productWithTotals.reduce((acc, p) => acc + p.totalQty, 0);
-
-  const lowStockProducts = productWithTotals
-    .filter((p) => p.totalQty <= LOW_STOCK_THRESHOLD)
-    .sort((a, b) => a.totalQty - b.totalQty)
-    .slice(0, 6)
-    .map((p) => ({ sku: p.sku, name: p.name, totalQty: p.totalQty }));
-
-  const now = new Date();
-  const thresholdDate = new Date(now.getTime() + EXPIRATION_THRESHOLD_DAYS * 86_400_000);
-
-  const expiringProducts = products
-    .filter((p) => p.expirationDate && p.expirationDate <= thresholdDate)
-    .sort((a, b) => a.expirationDate!.getTime() - b.expirationDate!.getTime())
-    .slice(0, 6)
-    .map((p) => ({
-      sku: p.sku,
-      name: p.name,
-      expirationDate: p.expirationDate!.toISOString(),
-      daysUntilExpiration: Math.ceil(
-        (p.expirationDate!.getTime() - now.getTime()) / 86_400_000,
-      ),
-    }));
+  const tablesOccupied = tables.filter((t) => t.orders.length > 0).length;
+  const totalRevenuToday = todayOrders.reduce((s, o) => s + o.total, 0);
+  const itemCounts: Record<string, { name: string; count: number }> = {};
+  for (const order of todayOrders) {
+    for (const item of order.items) {
+      if (!itemCounts[item.name]) itemCounts[item.name] = { name: item.name, count: 0 };
+      itemCounts[item.name].count += item.quantity;
+    }
+  }
+  const topItems = Object.values(itemCounts).sort((a, b) => b.count - a.count).slice(0, 5);
 
   return {
-    totalProducts: products.length,
-    totalWarehouses: warehouses.length,
-    totalStock,
-    movementsToday,
-    lowStockProducts,
-    expiringProducts,
-    latestMovements: latestMovements.map(toMovement),
+    tablesTotal: tables.length, tablesOccupied, tablesAvailable: tables.length - tablesOccupied,
+    openOrders, totalRevenuToday, ordersToday: todayOrders.length,
+    averageTicket: todayOrders.length > 0 ? totalRevenuToday / todayOrders.length : 0,
+    topItems,
   };
 }

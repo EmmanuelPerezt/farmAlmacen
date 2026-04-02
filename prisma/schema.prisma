@@ -8,106 +8,103 @@ datasource db {
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  username              String                 @unique
-  password              String
-  displayName           String
-  role                  String
-  createdAt             DateTime               @default(now())
-  movements             Movement[]
-  sales                 Sale[]
-  cashRegisterSessions  CashRegisterSession[]
+  id           String  @id @default(cuid())
+  username     String  @unique
+  password     String
+  displayName  String
+  role         String
+  createdAt    DateTime @default(now())
+  orders       Order[]
 }
 
-model Product {
-  sku            Int         @id
-  name           String
-  price          Float
-  expirationDate DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  inventory      Inventory[]
-  movements      Movement[]
+// ─── Restaurant Models ───────────────────────────────────────────
+
+model TableSection {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#f59e0b")
+  sortOrder Int      @default(0)
+  tables    Table[]
+  createdAt DateTime @default(now())
 }
 
-model Warehouse {
-  id                    String                 @id @default(cuid())
-  name                  String                 @unique
-  description           String                 @default("")
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  inventory             Inventory[]
-  sourceMovements       Movement[]             @relation("SourceWarehouse")
-  targetMovements       Movement[]             @relation("TargetWarehouse")
-  sales                 Sale[]
-  cashRegisterSessions  CashRegisterSession[]
+model Table {
+  id        String        @id @default(cuid())
+  number    Int           @unique
+  name      String?
+  sectionId String?
+  section   TableSection? @relation(fields: [sectionId], references: [id])
+  shape     String        @default("square") // square | round | rectangle
+  seats     Int           @default(4)
+  posX      Float         @default(100)
+  posY      Float         @default(100)
+  width     Float         @default(120)
+  height    Float         @default(120)
+  rotation  Float         @default(0)
+  orders    Order[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
-model Inventory {
-  warehouseId String
-  sku         Int
-  qty         Int       @default(0)
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  product     Product   @relation(fields: [sku], references: [sku])
-
-  @@id([warehouseId, sku])
+model MenuCategory {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  emoji     String     @default("🍽️")
+  sortOrder Int        @default(0)
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
 }
 
-model Movement {
-  id                  String     @id @default(cuid())
-  type                String
-  sku                 Int
-  productName         String
-  quantity            Int
-  sourceWarehouseId   String?
-  sourceWarehouseName String?
-  targetWarehouseId   String?
-  targetWarehouseName String?
-  sourceBeforeQty     Int?
-  sourceAfterQty      Int?
-  targetBeforeQty     Int?
-  targetAfterQty      Int?
-  performedBy         String
-  performedByName     String
-  note                String     @default("")
-  createdAt           DateTime   @default(now())
-  product             Product    @relation(fields: [sku], references: [sku])
-  sourceWarehouse     Warehouse? @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
-  targetWarehouse     Warehouse? @relation("TargetWarehouse", fields: [targetWarehouseId], references: [id])
-  performer           User       @relation(fields: [performedBy], references: [username])
+model MenuItem {
+  id          String       @id @default(cuid())
+  name        String
+  description String       @default("")
+  price       Float
+  categoryId  String
+  category    MenuCategory @relation(fields: [categoryId], references: [id])
+  available   Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  orderItems  OrderItem[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
-model Sale {
-  id                    String               @id @default(cuid())
-  warehouseId           String
-  warehouseName         String
-  items                 String
-  itemCount             Int
-  total                 Float
-  cashReceived          Float
-  change                Float
-  saleType              String               @default("normal")
-  authorizedBy          String?
-  authorizedByName      String?
-  cashRegisterSessionId String?
-  performedBy           String
-  performedByName       String
-  createdAt             DateTime             @default(now())
-  warehouse             Warehouse            @relation(fields: [warehouseId], references: [id])
-  performer             User                 @relation(fields: [performedBy], references: [username])
-  cashRegisterSession   CashRegisterSession? @relation(fields: [cashRegisterSessionId], references: [id])
+model Order {
+  id            String      @id @default(cuid())
+  tableId       String
+  table         Table       @relation(fields: [tableId], references: [id])
+  status        String      @default("open") // open | billed | paid | cancelled
+  guestCount    Int         @default(1)
+  items         OrderItem[]
+  notes         String      @default("")
+  openedBy      String
+  openedByName  String
+  closedAt      DateTime?
+  total         Float       @default(0)
+  cashReceived  Float?
+  change        Float?
+  paymentMethod String?     // cash | card | mixed
+  folio         Int?        // sequential ticket number
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  operator      User        @relation(fields: [openedBy], references: [username])
 }
 
-model CashRegisterSession {
-  id             String    @id @default(cuid())
-  warehouseId    String
-  warehouseName  String
-  openingBalance Float
-  closedAt       DateTime?
-  openedBy       String
-  openedByName   String
-  createdAt      DateTime  @default(now())
-  warehouse      Warehouse @relation(fields: [warehouseId], references: [id])
-  operator       User      @relation(fields: [openedBy], references: [username])
-  sales          Sale[]
+model OrderItem {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
+  name       String
+  unitPrice  Float
+  quantity   Int
+  notes      String    @default("")
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model OrderSequence {
+  id    String @id @default("singleton")
+  value Int    @default(0)
 }

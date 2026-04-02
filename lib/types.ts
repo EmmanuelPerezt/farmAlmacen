@@ -15,118 +15,116 @@ export type User = {
   createdAt: string;
 };
 
-export type Product = {
-  sku: number;
+// ─── Restaurant Types ─────────────────────────────────────────────
+
+export type TableShape = "square" | "round" | "rectangle";
+export type TableStatus = "available" | "occupied" | "reserved" | "cleaning";
+export type OrderStatus = "open" | "billed" | "paid" | "cancelled";
+export type PaymentMethod = "cash" | "card" | "mixed";
+
+export type TableSection = {
+  id: string;
   name: string;
-  price: number;
-  expirationDate: string | null;
+  color: string;
+  sortOrder: number;
+  createdAt: string;
+};
+
+export type Table = {
+  id: string;
+  number: number;
+  name: string | null;
+  sectionId: string | null;
+  sectionName: string | null;
+  sectionColor: string | null;
+  shape: TableShape;
+  seats: number;
+  posX: number;
+  posY: number;
+  width: number;
+  height: number;
+  rotation: number;
   createdAt: string;
   updatedAt: string;
 };
 
-export type Warehouse = {
+export type TableWithStatus = Table & {
+  status: TableStatus;
+  activeOrder: ActiveOrderSummary | null;
+};
+
+export type ActiveOrderSummary = {
+  id: string;
+  guestCount: number;
+  total: number;
+  itemCount: number;
+  openedAt: string;
+  openedByName: string;
+  minutesOpen: number;
+};
+
+export type MenuCategory = {
+  id: string;
+  name: string;
+  emoji: string;
+  sortOrder: number;
+  itemCount: number;
+  createdAt: string;
+};
+
+export type MenuItem = {
   id: string;
   name: string;
   description: string;
+  price: number;
+  categoryId: string;
+  categoryName: string;
+  available: boolean;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };
 
-export type StockByWarehouse = {
-  warehouseId: string;
-  warehouseName: string;
-  qty: number;
-};
-
-export type ProductWithStock = Product & {
-  totalQty: number;
-  stockByWarehouse: StockByWarehouse[];
-};
-
-export type MovementType = "entrada" | "salida" | "traslado";
-
-export type Movement = {
+export type OrderItem = {
   id: string;
-  type: MovementType;
-  sku: number;
-  productName: string;
+  orderId: string;
+  menuItemId: string;
+  name: string;
+  unitPrice: number;
   quantity: number;
-  sourceWarehouseId: string | null;
-  sourceWarehouseName: string | null;
-  targetWarehouseId: string | null;
-  targetWarehouseName: string | null;
-  sourceBeforeQty: number | null;
-  sourceAfterQty: number | null;
-  targetBeforeQty: number | null;
-  targetAfterQty: number | null;
-  performedBy: string;
-  performedByName: string;
-  note: string;
+  notes: string;
+  sentAt: string | null;
   createdAt: string;
 };
 
-export type WarehouseStockSummary = Warehouse & {
-  totalQty: number;
-  totalProducts: number;
-};
-
-export type SaleLineItem = {
-  sku: number;
-  productName: string;
-  price: number;
-  quantity: number;
-  subtotal: number;
-};
-
-export type SaleType = "normal" | "cortesia";
-
-export type Sale = {
+export type Order = {
   id: string;
-  warehouseId: string;
-  warehouseName: string;
-  items: SaleLineItem[];
-  itemCount: number;
-  total: number;
-  cashReceived: number;
-  change: number;
-  saleType: SaleType;
-  authorizedBy: string | null;
-  authorizedByName: string | null;
-  cashRegisterSessionId: string | null;
-  performedBy: string;
-  performedByName: string;
-  createdAt: string;
-};
-
-export type CashRegisterSession = {
-  id: string;
-  warehouseId: string;
-  warehouseName: string;
-  openingBalance: number;
-  closedAt: string | null;
+  tableId: string;
+  tableNumber: number;
+  tableName: string | null;
+  status: OrderStatus;
+  guestCount: number;
+  items: OrderItem[];
+  notes: string;
   openedBy: string;
   openedByName: string;
+  closedAt: string | null;
+  total: number;
+  cashReceived: number | null;
+  change: number | null;
+  paymentMethod: PaymentMethod | null;
+  folio: number | null;
   createdAt: string;
-  totalSales: number;
-  totalCortesia: number;
-  expectedBalance: number;
+  updatedAt: string;
 };
 
-export type DashboardMetrics = {
-  totalProducts: number;
-  totalWarehouses: number;
-  totalStock: number;
-  movementsToday: number;
-  lowStockProducts: Array<{
-    sku: number;
-    name: string;
-    totalQty: number;
-  }>;
-  expiringProducts: Array<{
-    sku: number;
-    name: string;
-    expirationDate: string;
-    daysUntilExpiration: number;
-  }>;
-  latestMovements: Movement[];
+export type RestaurantStats = {
+  tablesTotal: number;
+  tablesOccupied: number;
+  tablesAvailable: number;
+  openOrders: number;
+  totalRevenuToday: number;
+  ordersToday: number;
+  averageTicket: number;
+  topItems: Array<{ name: string; count: number }>;
 };
